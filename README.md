@@ -5,6 +5,8 @@ An AI-driven, multi-tenant academic support portal designed to streamline studen
 Designed with a premium, clean **Notion/Linear-style light aesthetic** and dynamic role-based page views.
 
 ---
+## live 
+https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/
 
 ## ✨ Key Features
 
