@@ -7,14 +7,36 @@ Redesigned with SaaS-grade aesthetics (Notion/Linear style) and modern st.naviga
 import sys
 import os
 
+# Force pure-python protobuf implementation to prevent opentelemetry/chromadb TypeError conflicts on deployment
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 # Add project root to sys.path so all imports resolve from any working directory.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
-from models.base import SessionLocal
+from models.base import Base, engine, SessionLocal
 from models.university import University
 from models.user import User, UserRole
+from models.ticket import Ticket
+from models.kb_document import KBDocument
+from models.feedback import Feedback
 from services.auth_service import AuthService
+
+# Ensure data directory exists
+db_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+os.makedirs(db_dir, exist_ok=True)
+
+# Create all tables in SQLite if they don't exist
+Base.metadata.create_all(bind=engine)
+
+# Auto-seed database if empty
+db_inst = SessionLocal()
+try:
+    if db_inst.query(University).count() == 0:
+        from scripts.db_init import seed_demo_data
+        seed_demo_data()
+finally:
+    db_inst.close()
 
 # ── Custom CSS for light, premium theme ────────────────────────────────────────
 CUSTOM_CSS = """
