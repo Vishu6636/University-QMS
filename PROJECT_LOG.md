@@ -1,0 +1,2 @@
+# PROJECT LOG
+# placeholder

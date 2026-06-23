@@ -1,0 +1,29 @@
+.env
+.env.*
+
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache / bytecode
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local database files
+data/*.db
+data/chroma/
+chroma/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Streamlit secrets (keep config.toml if needed, ignore secrets.toml)
+.streamlit/secrets.toml
+
+# Heavy/inactive model weights
+models/intent/distilbert/

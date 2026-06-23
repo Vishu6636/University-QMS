@@ -1,0 +1,401 @@
+university_id,university_name,query_text,intent,department,priority
+2,Lakeview University,how to pay exam fee online,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,when is the tuition fee due this semester,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,placement registration last date,placement_info,Career Services,low
+2,Lakeview University,annual fee structure kya hai,fee_payment,Bursary Office,high
+2,Lakeview University,I disagree with my result what can I do,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,hostel warden ne galat fine laga di,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,partial fee payment allowed?,fee_payment,Finance & Accounts,high
+2,Lakeview University,open elective list kahan milegi,course_registration,Information Technology,medium
+2,Lakeview University,attendance mismatch in portal how to correct,attendance_policy,Student Welfare,medium
+2,Lakeview University,hostel curfew time kya hai,hostel_booking,Residential Services,medium
+2,Lakeview University,how to apply for attendance exemption,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,how to escalate an unresolved complaint,grievance,Student Affairs,high
+2,Lakeview University,How much is the late fine per day?,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,i want to know about scholarship last date,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,can I change my hostel room,hostel_booking,Residential Services,medium
+2,Lakeview University,can I check my attendance subject wise,attendance_policy,Student Welfare,medium
+2,Lakeview University,what is detain policy for low attendance,attendance_policy,Student Welfare,medium
+2,Lakeview University,paid fees but portal still shows due,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,admission process for postgraduate programs,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,duplicate fee receipt kaise milegi,fee_payment,Finance & Accounts,high
+2,Lakeview University,revaluation se marks badh sakte hain kya,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,revaluation ke liye apply karne ki last date,revaluation_request,Examination Cell,high
+1,Greenfield Institute of Technology,library timing kya hai,library_access,Library,low
+2,Lakeview University,total fees for one year,fee_payment,Bursary Office,high
+2,Lakeview University,document verification for job,document_request,Academic Registry,medium
+2,Lakeview University,scholarship form kahan se milegi,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,how to apply for supplementary exam,exam_schedule,Examination Cell,medium
+2,Lakeview University,hostel mein wifi hai kya,hostel_booking,Residential Services,medium
+2,Lakeview University,library mein kitni books mil sakti hain,library_access,Digital Library,low
+2,Lakeview University,revaluation application kahan jama karein,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,backlog hai toh placement mil sakti hai,placement_info,Career Services,low
+1,Greenfield Institute of Technology,how many books can I borrow from library,library_access,Library,low
+1,Greenfield Institute of Technology,entrance exam required for admission,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,library membership renewal process,library_access,Library,low
+2,Lakeview University,library membership renewal process,library_access,Digital Library,low
+1,Greenfield Institute of Technology,accepted payment modes for fee,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,how many credits can I register for,course_registration,Computer Science & Engineering,medium
+2,Lakeview University,can third year students sit in placements,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,foreign national admission process,admission_query,Student Affairs,medium
+2,Lakeview University,duplicate marksheet kaise milegi,document_request,Academic Registry,medium
+2,Lakeview University,anonymous complaint dene ka option hai kya,grievance,Student Welfare,high
+2,Lakeview University,scholarship kitni milegi mujhe,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,fee jama karne ki last date kya hai,fee_payment,Finance & Accounts,high
+2,Lakeview University,what items can i bring to examination hall,exam_schedule,Academic Registry,medium
+2,Lakeview University,library mein kitni books mil sakti hain,library_access,Digital Library,low
+1,Greenfield Institute of Technology,which department handles placements,placement_info,Career Services,low
+1,Greenfield Institute of Technology,audit course kaise register karein,course_registration,Computer Science & Engineering,medium
+1,Greenfield Institute of Technology,hostel check-in time kya hai arriving at 10:00 PM,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,library mein kitni books mil sakti hain,library_access,Library,low
+1,Greenfield Institute of Technology,challenge valuation possible hai kya,revaluation_request,Examination Cell,high
+1,Greenfield Institute of Technology,library card kho gayi kya karein,library_access,Library,low
+1,Greenfield Institute of Technology,scholarship kitni milegi mujhe,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,i want to know about scholarship last date,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,placement registration last date,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,attendance shortage letter kaise milega,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,discrimination complaint kaise karein,grievance,Student Affairs,high
+2,Lakeview University,annual fee structure kya hai,fee_payment,Bursary Office,high
+2,Lakeview University,scholarship application kab band hoti hai,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,hostel application form kahan milega,hostel_booking,Residential Services,medium
+2,Lakeview University,attendance portal pe nahi dikh rahi,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,can I change my elective after registration,course_registration,Computer Science & Engineering,medium
+1,Greenfield Institute of Technology,admission form fill karne ki last date,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,hostel room change request karna hai,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,attendance shortage letter kaise milega,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,dress code for placement drive,placement_info,Career Services,low
+1,Greenfield Institute of Technology,admission process for postgraduate programs,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,is library open on weekends,library_access,Library,low
+1,Greenfield Institute of Technology,how to apply for supplementary exam,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,when is the tuition fee due this semester,fee_payment,Finance & Accounts,high
+2,Lakeview University,hostel curfew time kya hai,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,official transcript for abroad application,document_request,Examination Cell,medium
+1,Greenfield Institute of Technology,fee not reflecting in portal after payment,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,minimum credit requirement per semester,course_registration,Computer Science & Engineering,medium
+1,Greenfield Institute of Technology,transcript request kaise karein,document_request,Examination Cell,medium
+1,Greenfield Institute of Technology,Need help with scholarship form,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,hostel allotment kaise hoti hai,hostel_booking,Hostel Administration,medium
+2,Lakeview University,medical leave pe attendance relax hogi kya,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,how many students got placed last year,placement_info,Career Services,low
+2,Lakeview University,which department handles placements,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,how long does grievance resolution take,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,character certificate ke liye apply karna hai,document_request,Examination Cell,medium
+1,Greenfield Institute of Technology,TC transfer certificate apply karna hai,document_request,Examination Cell,medium
+2,Lakeview University,kya hostel mein guests aa sakte hain,hostel_booking,Residential Services,medium
+2,Lakeview University,Need help with scholarship form,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,who handles student grievances,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,can fees be paid in installments,fee_payment,Finance & Accounts,high
+2,Lakeview University,NOC for internship kahan se milegi,document_request,Academic Registry,medium
+2,Lakeview University,hostel mein wifi hai kya,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,back paper exam kab hoga,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,How much scholarship can I get from Greenfield Institute of Technology?,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,attendance update hone mein kitna time lagta hai,attendance_policy,Student Welfare,medium
+2,Lakeview University,when is the tuition fee due this semester,fee_payment,Bursary Office,high
+2,Lakeview University,how many days for document processing,document_request,Academic Registry,medium
+2,Lakeview University,back paper exam kab hoga,exam_schedule,Academic Registry,medium
+2,Lakeview University,can fees be paid in installments,fee_payment,Bursary Office,high
+2,Lakeview University,can revaluation reduce my marks,revaluation_request,Academic Registry,high
+2,Lakeview University,foreign national admission process,admission_query,Student Welfare,medium
+2,Lakeview University,hostel application form kahan milega,hostel_booking,Residential Services,medium
+2,Lakeview University,late entry hostel mein possible hai kya,hostel_booking,Residential Services,medium
+2,Lakeview University,mess food quality complaint kaise dun,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,entrance exam required for admission,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,challenge valuation possible hai kya,revaluation_request,Examination Cell,high
+2,Lakeview University,scholarship nahi mili abhi tak kya karun,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,what is the exam fee payment deadline,exam_schedule,Examination Cell,medium
+2,Lakeview University,exam fee last date kya hai,exam_schedule,Academic Registry,medium
+2,Lakeview University,How much scholarship can I get from Lakeview University?,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,lateral entry admission kaise hoti hai,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,revaluation fee kya hai,revaluation_request,Examination Cell,high
+2,Lakeview University,late entry hostel mein possible hai kya,hostel_booking,Residential Services,medium
+2,Lakeview University,how to get fee receipt online,fee_payment,Bursary Office,high
+2,Lakeview University,duplicate fee receipt kaise milegi,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,how do I apply for hostel,hostel_booking,Hostel Administration,medium
+2,Lakeview University,audit course kaise register karein,course_registration,Information Technology,medium
+1,Greenfield Institute of Technology,single room available in hostel,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,I want to file a complaint against a faculty member,grievance,Student Affairs,high
+2,Lakeview University,result ke baad revaluation kab hoti hai,revaluation_request,Academic Registry,high
+2,Lakeview University,reference section mein books issue hoti hain kya,library_access,Digital Library,low
+1,Greenfield Institute of Technology,how long does grievance resolution take,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,previous year placement statistics kahan dekhein,placement_info,Career Services,low
+2,Lakeview University,how many leaves can I take in a semester,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,re-exam schedule kab hoga,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,agar attendance 75% se kam ho toh kya hoga,attendance_policy,Student Affairs,medium
+2,Lakeview University,is calculator allowed in maths exam,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,if I attend college event will it count as attendance,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,how to apply for attendance exemption,attendance_policy,Student Affairs,medium
+2,Lakeview University,placement cell contact number,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,direct admission available kya hai,admission_query,Student Affairs,medium
+2,Lakeview University,how to get bonafide certificate,document_request,Academic Registry,medium
+2,Lakeview University,migration certificate process,document_request,Academic Registry,medium
+2,Lakeview University,admission form fill karne ki last date,admission_query,Student Welfare,medium
+1,Greenfield Institute of Technology,How much is the late fine per day?,fee_payment,Finance & Accounts,high
+2,Lakeview University,what is detain policy for low attendance,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,paid fees but portal still shows due,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,migration certificate process,document_request,Examination Cell,medium
+2,Lakeview University,when does placement season start at Lakeview University,placement_info,Placement Cell,low
+2,Lakeview University,how do I apply for hostel,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,need docs list for scholrship form filling,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,What's the income limit for scholarship eligibility?,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,how to get fee receipt online,fee_payment,Bursary Office,high
+2,Lakeview University,placement ke liye register kaise karein,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,IEEE access student portal pe hai kya,library_access,Library,low
+2,Lakeview University,exam centre kahan hoga,exam_schedule,Academic Registry,medium
+2,Lakeview University,revaluation se marks badh sakte hain kya,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,instalment option hai kya fees ke liye,fee_payment,Finance & Accounts,high
+2,Lakeview University,instalment option hai kya fees ke liye,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,open elective list kahan milegi,course_registration,Computer Science & Engineering,medium
+2,Lakeview University,return date extend ho sakti hai kya,library_access,Digital Library,low
+2,Lakeview University,need docs list for scholrship form filling,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,highest package offered last year,placement_info,Placement Cell,low
+2,Lakeview University,what is detain policy for low attendance,attendance_policy,Student Welfare,medium
+2,Lakeview University,can fees be paid in installments,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,is AC available in hostel rooms,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,medium of instruction certificate chahiye,document_request,Examination Cell,medium
+2,Lakeview University,admit card download karna hai,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,hostel allotment kaise hoti hai,hostel_booking,Hostel Administration,medium
+2,Lakeview University,Is mess fee included in hostel charges?,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,hostel mein laundry facility hai kya,hostel_booking,Hostel Administration,medium
+2,Lakeview University,I disagree with my result what can I do,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,exam hall ticket kaise download karein,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,I want to file a complaint against a faculty member,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,wrong marks added in result sheet,revaluation_request,Examination Cell,high
+2,Lakeview University,discrimination complaint kaise karein,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,supplementary exam dates,exam_schedule,Examination Cell,medium
+2,Lakeview University,can I apply for photocopy of answer sheet,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,my family can't afford fees right now,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,when is the tuition fee due this semester,fee_payment,Finance & Accounts,high
+2,Lakeview University,lateral entry admission kaise hoti hai,admission_query,Student Welfare,medium
+2,Lakeview University,when exactly does late fee start after 3 days grace,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,digital library access from home,library_access,Library,low
+2,Lakeview University,medical certificate kahan submit karein,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,grace marks policy kya hai,revaluation_request,Examination Cell,high
+2,Lakeview University,lateral entry admission kaise hoti hai,admission_query,Student Welfare,medium
+1,Greenfield Institute of Technology,when exactly does late fee start after 5 days grace,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,can I change my elective after registration,course_registration,Computer Science & Engineering,medium
+1,Greenfield Institute of Technology,can I appear in exam without paying fee,exam_schedule,Examination Cell,medium
+2,Lakeview University,internship opportunities through placement cell,placement_info,Placement Cell,low
+2,Lakeview University,sexual harassment complaint process,grievance,Student Welfare,high
+2,Lakeview University,need docs list for scholrship form filling,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,placement registration last date,placement_info,Career Services,low
+1,Greenfield Institute of Technology,need docs list for scholrship form filling,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,can I apply for photocopy of answer sheet,revaluation_request,Academic Registry,high
+2,Lakeview University,revaluation application kahan jama karein,revaluation_request,Academic Registry,high
+2,Lakeview University,mess food quality complaint kaise dun,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,what is the hostel fee,hostel_booking,Hostel Administration,medium
+2,Lakeview University,eligibility criteria for campus placements,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,scholarship nahi mili abhi tak kya karun,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,can I appear in exam without paying fee,exam_schedule,Academic Registry,medium
+2,Lakeview University,what is the max scholarship amount available,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,urgent bonafide possible hai kya,document_request,Academic Registry,medium
+1,Greenfield Institute of Technology,hostel fee alag se bharna hoga kya,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,how to get bonafide certificate,document_request,Examination Cell,medium
+2,Lakeview University,challenge valuation possible hai kya,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,answer sheet photocopy process,revaluation_request,Examination Cell,high
+1,Greenfield Institute of Technology,when are the end semester exams,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,can I renew my scholarship next year,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,duplicate fee receipt kaise milegi,fee_payment,Finance & Accounts,high
+2,Lakeview University,hostel warden ne galat fine laga di,grievance,Student Welfare,high
+2,Lakeview University,what is the hostel fee,hostel_booking,Residential Services,medium
+2,Lakeview University,fee waiver possible for economically weak students,fee_payment,Bursary Office,high
+2,Lakeview University,can I check my attendance subject wise,attendance_policy,Student Welfare,medium
+2,Lakeview University,can I take courses from another department,course_registration,Information Technology,medium
+2,Lakeview University,Did the scholarship deadline get extended?,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,late return fine kya hai library mein,library_access,Digital Library,low
+1,Greenfield Institute of Technology,Is mess fee included in hostel charges?,fee_payment,Finance & Accounts,high
+2,Lakeview University,proxy attendance allowed hai kya,attendance_policy,Student Welfare,medium
+1,Greenfield Institute of Technology,exam centre kahan hoga,exam_schedule,Examination Cell,medium
+2,Lakeview University,supplementary exam dates,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,proxy attendance allowed hai kya,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,admit card download karna hai,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,management quota seats available,admission_query,Student Affairs,medium
+1,Greenfield Institute of Technology,can third year students sit in placements,placement_info,Career Services,low
+2,Lakeview University,fee waiver possible for economically weak students,fee_payment,Bursary Office,high
+2,Lakeview University,scholarship kitni milegi mujhe,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,how many students per hostel room,hostel_booking,Hostel Administration,medium
+2,Lakeview University,can I change my hostel room,hostel_booking,Residential Services,medium
+2,Lakeview University,can I renew my scholarship next year,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,what is minimum attendance required,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,how to apply for revaluation,revaluation_request,Examination Cell,high
+1,Greenfield Institute of Technology,is merit scholarship different from need-based grant,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,ragging complaint kahan karein,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,can I reserve a book that is currently issued,library_access,Library,low
+2,Lakeview University,online journals access kaise karein,library_access,Digital Library,low
+2,Lakeview University,fee receipt nahi mili portal pe,fee_payment,Bursary Office,high
+2,Lakeview University,backlog hai toh placement mil sakti hai,placement_info,Placement Cell,low
+2,Lakeview University,how to apply for revaluation,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,visitor policy in hostel,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,can I appear in exam without paying fee,exam_schedule,Examination Cell,medium
+2,Lakeview University,when is the last date to apply for scholarship at Lakeview University?,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,is there a late fee penalty after due date,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,scholarship application kab band hoti hai,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,what happens if i miss the exam fee deadline,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,anonymous complaint dene ka option hai kya,grievance,Student Affairs,high
+2,Lakeview University,result change hone mein kitna time lagta hai after revaluation,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,is merit scholarship different from need-based grant,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,scholarship rejected reason kya hoga,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,ragging complaint kahan karein,grievance,Student Welfare,high
+2,Lakeview University,hostel warden ne galat fine laga di,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,What documents do I need for scholarship?,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,when exactly does late fee start after 5 days grace,fee_payment,Finance & Accounts,high
+2,Lakeview University,re-exam schedule kab hoga,exam_schedule,Academic Registry,medium
+2,Lakeview University,can revaluation reduce my marks,revaluation_request,Academic Registry,high
+2,Lakeview University,fee waiver possible for economically weak students,fee_payment,Bursary Office,high
+2,Lakeview University,medical leave pe attendance relax hogi kya,attendance_policy,Student Welfare,medium
+2,Lakeview University,revaluation fee kya hai,revaluation_request,Academic Registry,high
+2,Lakeview University,what is the max scholarship amount available,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,What documents do I need for scholarship?,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,how many leaves can I take in a semester,attendance_policy,Student Welfare,medium
+2,Lakeview University,partial fee payment allowed?,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,kitni attendance required hoti hai exams ke liye,attendance_policy,Student Affairs,medium
+2,Lakeview University,answer sheet photocopy process,revaluation_request,Academic Registry,high
+2,Lakeview University,course registration portal link,course_registration,Information Technology,medium
+2,Lakeview University,discrimination complaint kaise karein,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,medium of instruction certificate chahiye,document_request,Examination Cell,medium
+2,Lakeview University,how to apply for revaluation,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,minimum CGPA for placement,placement_info,Career Services,low
+2,Lakeview University,meri problem ka koi solution nahi de raha,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,how to register for elective subjects,course_registration,Computer Science & Engineering,medium
+1,Greenfield Institute of Technology,docs required for scholarship application pls tell,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,reference section mein books issue hoti hain kya,library_access,Digital Library,low
+2,Lakeview University,supplementary exam dates,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,how many books can I borrow from library,library_access,Library,low
+1,Greenfield Institute of Technology,is calculator allowed in maths exam,exam_schedule,Examination Cell,medium
+1,Greenfield Institute of Technology,medical leave pe attendance relax hogi kya,attendance_policy,Student Affairs,medium
+2,Lakeview University,what time does hostel gate close,hostel_booking,Residential Services,medium
+2,Lakeview University,can you tell me the scolarship deadline plz,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,Is mess fee included in hostel charges?,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,can I appear in exam without paying fee,exam_schedule,Examination Cell,medium
+2,Lakeview University,faculty giving partiality in marks,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,visitor policy in hostel,hostel_booking,Hostel Administration,medium
+2,Lakeview University,PG admission eligibility criteria,admission_query,Student Welfare,medium
+1,Greenfield Institute of Technology,can third year students sit in placements,placement_info,Career Services,low
+2,Lakeview University,online payment kaise karte hain fees ka,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,partial fee payment allowed?,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,Can I apply for scholarship after March 15?,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,how do i know my exam timetable,exam_schedule,Academic Registry,medium
+2,Lakeview University,instalment option hai kya fees ke liye,fee_payment,Bursary Office,high
+2,Lakeview University,admission process for postgraduate programs,admission_query,Student Welfare,medium
+2,Lakeview University,library mein kitni books mil sakti hain,library_access,Digital Library,low
+2,Lakeview University,entrance exam required for admission,admission_query,Student Welfare,medium
+1,Greenfield Institute of Technology,where to get hall ticket,exam_schedule,Examination Cell,medium
+2,Lakeview University,i want to pay fee in two parts is it possible,fee_payment,Bursary Office,high
+2,Lakeview University,scholarship form kahan se milegi,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,can I renew my scholarship next year,scholarship_inquiry,Finance & Accounts,high
+2,Lakeview University,digital library access from home,library_access,Digital Library,low
+2,Lakeview University,scholarship kitni milegi mujhe,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,migration certificate process,document_request,Examination Cell,medium
+1,Greenfield Institute of Technology,fees wrongly deducted complaint,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,hostel curfew time kya hai,hostel_booking,Hostel Administration,medium
+2,Lakeview University,scholarship nahi mili abhi tak kya karun,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,foreign national admission process,admission_query,Student Welfare,medium
+2,Lakeview University,how many days grace period for fee payment,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,faculty giving partiality in marks,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,library membership renewal process,library_access,Library,low
+2,Lakeview University,ICC committee contact,grievance,Student Welfare,high
+2,Lakeview University,book reservation possible hai kya,library_access,Digital Library,low
+2,Lakeview University,reference section mein books issue hoti hain kya,library_access,Digital Library,low
+2,Lakeview University,date sheet kab release hoti hai,exam_schedule,Academic Registry,medium
+2,Lakeview University,exam schedule kab aayega,exam_schedule,Academic Registry,medium
+2,Lakeview University,placement ke liye register kaise karein,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,can I take courses from another department,course_registration,Computer Science & Engineering,medium
+2,Lakeview University,bonafide certificate kaise milegi,document_request,Academic Registry,medium
+1,Greenfield Institute of Technology,medium of instruction certificate chahiye,document_request,Examination Cell,medium
+1,Greenfield Institute of Technology,duplicate marksheet kaise milegi,document_request,Examination Cell,medium
+2,Lakeview University,fee not reflecting in portal after payment,fee_payment,Bursary Office,high
+2,Lakeview University,migration certificate process,document_request,Academic Registry,medium
+2,Lakeview University,is library open on weekends,library_access,Digital Library,low
+2,Lakeview University,I want to file a complaint against a faculty member,grievance,Student Welfare,high
+2,Lakeview University,hostel application form kahan milega,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,Did the scholarship deadline get extended?,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,book reservation possible hai kya,library_access,Library,low
+1,Greenfield Institute of Technology,i have 75% attendance is that enough,attendance_policy,Student Affairs,medium
+2,Lakeview University,where to get hall ticket,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,how do i know my exam timetable,exam_schedule,Examination Cell,medium
+2,Lakeview University,what happens if i miss the exam fee deadline,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,Did the scholarship deadline get extended?,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,eligibility criteria for campus placements,placement_info,Career Services,low
+1,Greenfield Institute of Technology,internship opportunities through placement cell,placement_info,Career Services,low
+1,Greenfield Institute of Technology,ICC committee contact,grievance,Student Affairs,high
+2,Lakeview University,how to get bonafide certificate,document_request,Academic Registry,medium
+1,Greenfield Institute of Technology,what is the hostel fee,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,exam centre kahan hoga,exam_schedule,Examination Cell,medium
+2,Lakeview University,who processes scholarship applications,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,Can I apply for scholarship after March 15?,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,late return fine kya hai library mein,library_access,Library,low
+1,Greenfield Institute of Technology,internship opportunities through placement cell,placement_info,Career Services,low
+1,Greenfield Institute of Technology,ragging complaint kahan karein,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,revaluation rejected what to do,revaluation_request,Examination Cell,high
+2,Lakeview University,urgent bonafide possible hai kya,document_request,Academic Registry,medium
+2,Lakeview University,Can I apply for scholarship after April 30?,scholarship_inquiry,Bursary Office,high
+2,Lakeview University,when exactly does late fee start after 3 days grace,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,is hostel available for first year students,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,grace marks policy kya hai,revaluation_request,Examination Cell,high
+2,Lakeview University,Did the scholarship deadline get extended?,scholarship_inquiry,Bursary Office,high
+1,Greenfield Institute of Technology,how to get fee receipt online,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,faculty giving partiality in marks,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,how many days grace period for fee payment,fee_payment,Finance & Accounts,high
+2,Lakeview University,proxy attendance allowed hai kya,attendance_policy,Student Welfare,medium
+2,Lakeview University,revaluation rejected what to do,revaluation_request,Academic Registry,high
+2,Lakeview University,mock interview sessions available,placement_info,Placement Cell,low
+2,Lakeview University,fee not reflecting in portal after payment,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,revaluation application kahan jama karein,revaluation_request,Examination Cell,high
+1,Greenfield Institute of Technology,can I take courses from another department,course_registration,Computer Science & Engineering,medium
+2,Lakeview University,how to register for elective subjects,course_registration,Information Technology,medium
+1,Greenfield Institute of Technology,gap year certificate process,document_request,Examination Cell,medium
+2,Lakeview University,hostel room change request karna hai,hostel_booking,Residential Services,medium
+1,Greenfield Institute of Technology,when is the last date to apply for scholarship at Greenfield Institute of Technology?,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,how many days grace period for fee payment,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,visitor policy in hostel,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,online journals access kaise karein,library_access,Library,low
+1,Greenfield Institute of Technology,attendance portal pe nahi dikh rahi,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,digital library access from home,library_access,Library,low
+2,Lakeview University,how to pay exam fee online,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,urgent bonafide possible hai kya,document_request,Examination Cell,medium
+2,Lakeview University,how to apply for attendance exemption,attendance_policy,Student Welfare,medium
+2,Lakeview University,can i pay fees by UPI or credit card,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,I want to file a complaint against a faculty member,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,how to apply for attendance exemption,attendance_policy,Student Affairs,medium
+2,Lakeview University,highest package offered last year,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,subject wise attendance kaise dekhein,attendance_policy,Student Affairs,medium
+2,Lakeview University,paid fees but portal still shows due,fee_payment,Bursary Office,high
+1,Greenfield Institute of Technology,hostel warden se complaint kaise karein,hostel_booking,Hostel Administration,medium
+1,Greenfield Institute of Technology,revaluation fee kya hai,revaluation_request,Examination Cell,high
+1,Greenfield Institute of Technology,hostel allotment kaise hoti hai,hostel_booking,Hostel Administration,medium
+2,Lakeview University,I disagree with my result what can I do,revaluation_request,Academic Registry,high
+2,Lakeview University,attendance update hone mein kitna time lagta hai,attendance_policy,Student Welfare,medium
+2,Lakeview University,minimum CGPA for placement,placement_info,Placement Cell,low
+2,Lakeview University,total fees for one year,fee_payment,Bursary Office,high
+2,Lakeview University,backlog hai toh placement mil sakti hai,placement_info,Placement Cell,low
+1,Greenfield Institute of Technology,meri problem ka koi solution nahi de raha,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,marks totalling error lag raha hai,revaluation_request,Examination Cell,high
+2,Lakeview University,can I appear in exam without paying fee,exam_schedule,Academic Registry,medium
+1,Greenfield Institute of Technology,sexual harassment complaint process,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,proxy attendance allowed hai kya,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,which companies come for placement,placement_info,Career Services,low
+1,Greenfield Institute of Technology,how many credits can I register for,course_registration,Computer Science & Engineering,medium
+1,Greenfield Institute of Technology,eligibility criteria for campus placements,placement_info,Career Services,low
+2,Lakeview University,admission counselling dates,admission_query,Student Welfare,medium
+2,Lakeview University,no dues certificate library se chahiye,library_access,Digital Library,low
+1,Greenfield Institute of Technology,medical leave pe attendance relax hogi kya,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,subject wise attendance kaise dekhein,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,result ke baad revaluation kab hoti hai,revaluation_request,Examination Cell,high
+2,Lakeview University,exam fee last date kya hai,exam_schedule,Academic Registry,medium
+2,Lakeview University,exam hall ticket kaise download karein,exam_schedule,Academic Registry,medium
+2,Lakeview University,medical certificate kahan submit karein,attendance_policy,Student Welfare,medium
+2,Lakeview University,attendance kam hai kya karun,attendance_policy,Student Welfare,medium
+2,Lakeview University,ICC committee contact,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,missed scholarship deadline is there any extension,scholarship_inquiry,Finance & Accounts,high
+1,Greenfield Institute of Technology,fee not reflecting in portal after payment,fee_payment,Finance & Accounts,high
+2,Lakeview University,minimum credit requirement per semester,course_registration,Information Technology,medium
+1,Greenfield Institute of Technology,how to pay exam fee online,exam_schedule,Examination Cell,medium
+2,Lakeview University,hostel warden ne galat fine laga di,grievance,Student Welfare,high
+1,Greenfield Institute of Technology,ICC committee contact,grievance,Student Affairs,high
+1,Greenfield Institute of Technology,attendance kam hai kya karun,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,total fees for one year,fee_payment,Finance & Accounts,high
+2,Lakeview University,how many credits can I register for,course_registration,Information Technology,medium
+2,Lakeview University,revaluation ke liye apply karne ki last date,revaluation_request,Academic Registry,high
+1,Greenfield Institute of Technology,total fees for one year,fee_payment,Finance & Accounts,high
+1,Greenfield Institute of Technology,how to get bonafide certificate,document_request,Examination Cell,medium
+1,Greenfield Institute of Technology,condonation of shortage of attendance process,attendance_policy,Student Affairs,medium
+1,Greenfield Institute of Technology,kitni attendance required hoti hai exams ke liye,attendance_policy,Student Affairs,medium

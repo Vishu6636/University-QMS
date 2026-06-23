@@ -1,0 +1,31 @@
+{
+  "winner": "tfidf_lr",
+  "label_map": {
+    "0": "admission_query",
+    "1": "attendance_policy",
+    "2": "course_registration",
+    "3": "document_request",
+    "4": "exam_schedule",
+    "5": "fee_payment",
+    "6": "grievance",
+    "7": "hostel_booking",
+    "8": "library_access",
+    "9": "placement_info",
+    "10": "revaluation_request",
+    "11": "scholarship_inquiry"
+  },
+  "intents": [
+    "admission_query",
+    "attendance_policy",
+    "course_registration",
+    "document_request",
+    "exam_schedule",
+    "fee_payment",
+    "grievance",
+    "hostel_booking",
+    "library_access",
+    "placement_info",
+    "revaluation_request",
+    "scholarship_inquiry"
+  ]
+}
