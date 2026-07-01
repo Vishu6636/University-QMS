@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">UQMS logomark</title>
+  <desc id="desc">A geometric institutional support mark built from connected panels.</desc>
+  <rect width="48" height="48" rx="10" fill="#4F46E5"/>
+  <path d="M14 15.5 24 10l10 5.5v11L24 32l-10-5.5z" fill="#FFFFFF" opacity=".96"/>
+  <path d="M18 18.2 24 15l6 3.2v6.6L24 28l-6-3.2z" fill="#EEF2FF"/>
+  <path d="M24 15v13M18 18.2l12 6.6M30 18.2l-12 6.6" stroke="#4F46E5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 36h18" stroke="#C7D2FE" stroke-width="3" stroke-linecap="round"/>
+</svg>

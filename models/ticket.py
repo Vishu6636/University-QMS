@@ -64,6 +64,7 @@ class Ticket(Base):
         nullable=False,
     )
     resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolution_text = Column(Text, nullable=True)
 
     # Relationships
     university = relationship("University", back_populates="tickets")

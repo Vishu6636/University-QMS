@@ -11,6 +11,7 @@ from models.base import Base
 class UserRole(str, enum.Enum):
     student = "student"
     admin = "admin"
+    super_admin = "super_admin"
 
 
 class User(Base):
@@ -20,7 +21,7 @@ class User(Base):
     university_id = Column(
         Integer,
         ForeignKey("universities.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     name = Column(String(255), nullable=False)

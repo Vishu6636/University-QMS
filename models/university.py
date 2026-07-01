@@ -16,6 +16,8 @@ class University(Base):
     slug = Column(String(100), nullable=False, unique=True, index=True)
     # Stored as a JSON string: ["CS", "MBA", "Law", ...]
     department_list = Column(Text, nullable=False, default="[]")
+    status = Column(String(50), nullable=False, default="pending")
+    rejection_reason = Column(Text, nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -26,6 +28,7 @@ class University(Base):
     users = relationship("User", back_populates="university", cascade="all, delete-orphan")
     tickets = relationship("Ticket", back_populates="university", cascade="all, delete-orphan")
     kb_documents = relationship("KBDocument", back_populates="university", cascade="all, delete-orphan")
+    leads = relationship("Lead", back_populates="university", cascade="all, delete-orphan")
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 

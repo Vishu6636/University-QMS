@@ -10,6 +10,11 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+try:
+    import sentry_sdk
+except ImportError:
+    sentry_sdk = None
+
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -57,6 +62,8 @@ class TicketService:
                 sentiment_score = calc_sentiment(description)
             except Exception as e:
                 log.warning("Failed to calculate sentiment score: %s", e)
+                if sentry_sdk:
+                    sentry_sdk.capture_exception(e)
                 sentiment_score = 0.0
 
         # 2. Determine department if not provided
@@ -71,6 +78,8 @@ class TicketService:
                 department = map_intent_to_department(intent, uni_depts)
             except Exception as e:
                 log.warning("Failed to predict intent/department: %s", e)
+                if sentry_sdk:
+                    sentry_sdk.capture_exception(e)
                 # Fallback to first department of university, or "General"
                 from models.university import University
                 uni = self.db.query(University).filter(University.id == self.university_id).first()
@@ -88,6 +97,8 @@ class TicketService:
                 priority = TicketPriority(pred_prio_str.lower())
             except Exception as e:
                 log.warning("Failed to predict priority: %s", e)
+                if sentry_sdk:
+                    sentry_sdk.capture_exception(e)
                 priority = TicketPriority.medium
 
         ticket = Ticket(
@@ -100,9 +111,16 @@ class TicketService:
             status=TicketStatus.open,
             sentiment_score=sentiment_score,
         )
-        self.db.add(ticket)
-        self.db.commit()
-        self.db.refresh(ticket)
+        try:
+            self.db.add(ticket)
+            self.db.commit()
+            self.db.refresh(ticket)
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to create ticket in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
         log.info("Created ticket id=%s for student_id=%s department=%s priority=%s",
                  ticket.id, student_id, ticket.department, ticket.priority)
         return ticket
@@ -165,11 +183,11 @@ class TicketService:
 
     # ── Update ─────────────────────────────────────────────────────────────────
 
-    def update_status(self, ticket_id: int, new_status: TicketStatus) -> Ticket:
+    def update_status(self, ticket_id: int, new_status: TicketStatus, resolution_text: Optional[str] = None) -> Ticket:
         """Change ticket status, validating transition rules."""
-        return self.update_ticket_status(ticket_id, new_status)
+        return self.update_ticket_status(ticket_id, new_status, resolution_text)
 
-    def update_ticket_status(self, ticket_id: int, new_status: TicketStatus) -> Ticket:
+    def update_ticket_status(self, ticket_id: int, new_status: TicketStatus, resolution_text: Optional[str] = None) -> Ticket:
         """
         Change ticket status enforcing valid transition rules:
           - open -> in_progress
@@ -207,11 +225,21 @@ class TicketService:
             )
 
         ticket.status = new_status
-        if new_status == TicketStatus.resolved and ticket.resolved_at is None:
-            ticket.resolved_at = datetime.now(timezone.utc)
+        if new_status == TicketStatus.resolved:
+            if ticket.resolved_at is None:
+                ticket.resolved_at = datetime.now(timezone.utc)
+            if resolution_text:
+                ticket.resolution_text = resolution_text
             
-        self.db.commit()
-        self.db.refresh(ticket)
+        try:
+            self.db.commit()
+            self.db.refresh(ticket)
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to update ticket status in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
         log.info("Updated ticket id=%s status from %s to %s", ticket.id, current, new_status)
         return ticket
 
@@ -220,8 +248,15 @@ class TicketService:
         if not ticket:
             raise ValueError(f"Ticket {ticket_id} not found in this university.")
         ticket.priority = new_priority
-        self.db.commit()
-        self.db.refresh(ticket)
+        try:
+            self.db.commit()
+            self.db.refresh(ticket)
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to update ticket priority in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
         return ticket
 
     def set_sentiment(self, ticket_id: int, score: float) -> Ticket:
@@ -230,8 +265,15 @@ class TicketService:
         if not ticket:
             raise ValueError(f"Ticket {ticket_id} not found.")
         ticket.sentiment_score = score
-        self.db.commit()
-        self.db.refresh(ticket)
+        try:
+            self.db.commit()
+            self.db.refresh(ticket)
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to set ticket sentiment in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
         return ticket
 
     # ── Feedback ───────────────────────────────────────────────────────────────
@@ -255,9 +297,16 @@ class TicketService:
             satisfaction_score=satisfaction_score,
             comment=comment,
         )
-        self.db.add(fb)
-        self.db.commit()
-        self.db.refresh(fb)
+        try:
+            self.db.add(fb)
+            self.db.commit()
+            self.db.refresh(fb)
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to add feedback in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
         return fb
 
     # ── Stats ──────────────────────────────────────────────────────────────────

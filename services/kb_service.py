@@ -50,7 +50,7 @@ class KBService:
 
     @property
     def collection_name(self) -> str:
-        return f"kb_{self.university.slug}"
+        return f"university_{self.university.id}"
 
     def _get_collection(self):
         """Get-or-create the ChromaDB collection for this university."""
@@ -82,13 +82,26 @@ class KBService:
             content_text=content_text,
             doc_type=doc_type,
         )
-        self.db.add(doc)
-        self.db.commit()
-        self.db.refresh(doc)
+        try:
+            self.db.add(doc)
+            self.db.commit()
+            self.db.refresh(doc)
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to save KBDocument to SQLite: %s", e)
+            raise
         log.info("Saved KBDocument id=%s filename=%s", doc.id, filename)
 
         # 2. ChromaDB — chunk by paragraph, fall back to single chunk
-        self._index_document(doc)
+        from services.ingestion import ingest_to_vectorstore
+        ingest_success = ingest_to_vectorstore(self.university.id, doc.id, doc.content_text)
+        if not ingest_success:
+            try:
+                self.db.delete(doc)
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+            raise ValueError("Failed to index document in the vector store.")
         return doc
 
     def _index_document(self, doc: KBDocument) -> None:
@@ -189,8 +202,13 @@ class KBService:
         except Exception as exc:
             log.warning("ChromaDB delete failed for doc_id=%s: %s", doc_id, exc)
 
-        self.db.delete(doc)
-        self.db.commit()
+        try:
+            self.db.delete(doc)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to delete KBDocument from SQLite: %s", e)
+            raise
         log.info("Deleted KBDocument id=%s", doc_id)
         return True
 

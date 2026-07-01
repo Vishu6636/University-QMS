@@ -11,6 +11,12 @@ answer_query(university_id, query)
 
 import os
 import logging
+
+try:
+    import sentry_sdk
+except ImportError:
+    sentry_sdk = None
+
 from groq import Groq
 from services.ingestion import retrieve
 
@@ -88,6 +94,8 @@ def answer_query(
             answer = response.choices[0].message.content.strip()
         except Exception as e:
             log.exception("Groq API call failed: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
             answer = "Sorry, there was an error reaching the AI service. Please try again."
 
         escalate = "escalate this to a ticket" in answer.lower()

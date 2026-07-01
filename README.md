@@ -1,4 +1,4 @@
-# 🎓 University Query Management System (UQMS)
+# University Query Management System (UQMS)
 
 An AI-driven, multi-tenant academic support portal designed to streamline student query routing, auto-classify ticket priorities, and provide an instant AI-powered Chat (RAG) assistant based on ingested university guidelines, manuals, and FAQs.
 
@@ -8,18 +8,18 @@ Designed with a premium, clean **Notion/Linear-style light aesthetic** and dynam
 ## live 
 https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/
 
-## ✨ Key Features
+## Key Features
 
-*   **🏢 Multi-Tenant Onboarding**: Register new universities dynamically with custom slugs and institutional departments (e.g., Admissions, Finance & Accounts, IT Support).
-*   **📝 Student Self-Registration**: Secure signup flow with matching confirmations, email format validations, and student department selection.
-*   **🛡️ Dynamic Role Isolation**: Role-based sidebar navigation (`st.navigation`) dynamically hides admin pages (such as Onboarding and Document Ingestion) from students, and vice versa.
-*   **💬 RAG Knowledge Assistant**: Ingests PDF/TXT documents, processes text chunks, and indexes them into a localized **ChromaDB** vector store to answer student queries using university guidelines.
-*   **🤖 Automated Ticket Routing & Priority Prediction**: Auto-routes student support requests to relevant departments, scores sentiment, and predicts urgency using ML models.
-*   **📊 Interactive Admin Analytics**: Admin-only dashboards featuring ticket resolution timelines, department-wise backlogs, and student satisfaction ratings rendered via **Plotly**.
+*   **Multi-Tenant Onboarding**: Register new universities dynamically with custom slugs and institutional departments (e.g., Admissions, Finance & Accounts, IT Support).
+*   **Student Self-Registration**: Secure signup flow with matching confirmations, email format validations, and student department selection.
+*   **Dynamic Role Isolation**: Role-based sidebar navigation (`st.navigation`) dynamically hides admin pages (such as Onboarding and Document Ingestion) from students, and vice versa.
+*   **RAG Knowledge Assistant**: Ingests PDF/TXT documents, processes text chunks, and indexes them into a localized **ChromaDB** vector store to answer student queries using university guidelines.
+*   **Automated Ticket Routing & Priority Prediction**: Auto-routes student support requests to relevant departments, scores sentiment, and predicts urgency using ML models.
+*   **Interactive Admin Analytics**: Admin-only dashboards featuring ticket resolution timelines, department-wise backlogs, and student satisfaction ratings rendered via **Plotly**.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 *   **Frontend**: [Streamlit](https://streamlit.io/) (Dynamic routing, custom CSS injection, interactive layout)
 *   **Database & ORM**: [SQLite](https://www.sqlite.org/) & [SQLAlchemy](https://www.sqlalchemy.org/)
@@ -31,7 +31,7 @@ https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/
 
 ---
 
-## 🚀 Running Locally
+## Running Locally
 
 ### 1. Prerequisites
 Ensure you have **Python 3.10+** installed.
@@ -68,21 +68,45 @@ Open `http://localhost:8501` in your browser to view the application.
 
 ---
 
-## 🌩️ Deployment on Streamlit Cloud
+## Production Deployment & Infrastructure Hardening
 
-1. Commit and push all changes to your GitHub repository.
-2. Sign in to **[Streamlit Community Cloud](https://share.streamlit.io/)** with your GitHub account.
-3. Click **New App** and select your repository (`University-QMS`).
-4. Set the **Main file path** to `app/main.py`.
-5. *(Optional)* Add your environment variables (like API keys) in **Advanced settings > Secrets** in TOML format:
-   ```toml
-   GROQ_API_KEY = "your-api-key"
-   ```
-6. Click **Deploy!**
+This system is configured for seamless deployment on free-tier cloud infrastructure (e.g., Render, Railway, or Streamlit Community Cloud) paired with a managed database.
+
+### 1. Database Migration (Postgres)
+For production, the database engine can be swapped from the default local SQLite file to PostgreSQL by setting the `DATABASE_URL` environment variable:
+*   **Engine resilience**: The engine initializes with `pool_pre_ping=True` to automatically handle database idle timeouts and reconnection limits common on free-tier DB instances.
+*   **Compatible Hosts**: Neon (serverless Postgres) or Supabase free tier are recommended. Neon supports branching and instant point-in-time recovery.
+*   **Database backups**: Since Postgres is hosted externally, rely on the host's automatic, daily zero-config snapshots (available natively in Supabase and Neon) instead of custom database scripts.
+
+### 2. Error Monitoring (Sentry)
+Integrate real-time error tracking and alerting via Sentry:
+1. Create a free Sentry project.
+2. Add the `SENTRY_DSN` environment variable to your deployment configurations.
+3. Errors arising from AI/RAG APIs, database connections, or ML classification logic will automatically log to Sentry with detailed call stacks.
+
+### 3. Hosting Configurations (Render/Streamlit Cloud)
+*   **Procfile**: A generic `Procfile` is included for services like Render or Railway.
+*   **Resource limits**: On free-tier platforms, containers spin down (sleep) after ~15 minutes of inactivity. When a new request arrives, a cold start (~30-60 seconds) will occur.
+*   **ChromaDB state**: Since the vector database is local (`./data/chroma`), it will be ephemeral on non-persistent container platforms (like Render's free tier). For persistent knowledge, attach a small persistent volume mount to `/data`, or use a persistent host.
 
 ---
 
-## 📂 Project Architecture
+## Configuration & Environment Variables
+
+Create a `.env` file in the root directory (already included in `.gitignore`) or specify variables in your cloud hosting provider's panel:
+
+| Environment Variable | Default | Purpose |
+|----------------------|---------|---------|
+| `GROQ_API_KEY` | *(Required)* | Groq API access token for generating RAG chat answers |
+| `DATABASE_URL` | `sqlite:///./data/university_qms.db` | SQLAlchemy connection string (sqlite or postgresql) |
+| `SESSION_TIMEOUT_MINUTES` | `30` | Minutes of inactivity before student session state is cleared |
+| `SENTRY_DSN` | *(Optional)* | Sentry DSN endpoint for real-time error monitoring |
+| `SENTRY_ENV` | `production` | Environment name reported to Sentry |
+| `CHROMA_PATH` | `./data/chroma` | Persistent storage directory for ChromaDB collections |
+
+---
+
+## Project Architecture
 
 ```text
 university-query-system/

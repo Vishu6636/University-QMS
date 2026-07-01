@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 from models.university import University
 from models.user import User, UserRole
 from services.auth_service import AuthService
+from services.rate_limiter import registration_limiter
+from services.auth_service import validate_password
 
 
 def _slugify(text: str) -> str:
@@ -24,7 +26,7 @@ def _slugify(text: str) -> str:
 
 
 def render(db: Session) -> None:
-    st.markdown("<h2>🎓 Register Your University</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>Register Your University</h2>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         "Fill in the details below to register your university and create your first administrator account."
@@ -62,8 +64,10 @@ def render(db: Session) -> None:
         errors.append("Admin name is required.")
     if not admin_email.strip():
         errors.append("Admin email is required.")
-    if len(admin_pass) < 6:
-        errors.append("Password must be at least 6 characters.")
+    try:
+        validate_password(admin_pass)
+    except ValueError as pw_err:
+        errors.append(str(pw_err))
     if admin_pass != admin_pass2:
         errors.append("Passwords do not match.")
 
@@ -75,11 +79,21 @@ def render(db: Session) -> None:
 
     if errors:
         for e in errors:
-            st.error(f"⚠️ {e}")
+            st.error(f"{e}")
         return
 
     # ── Parse departments ─────────────────────────────────────────────────────
     departments = [d.strip() for d in dept_raw.split(",") if d.strip()]
+
+    # ── Rate limit check ──────────────────────────────────────────────────────
+    allowed, retry_after = registration_limiter.record_attempt(admin_email)
+    if not allowed:
+        minutes_left = max(1, retry_after // 60)
+        st.error(
+            f"Too many registration attempts. "
+            f"Please try again in {minutes_left} minute{'s' if minutes_left != 1 else ''}."
+        )
+        return
 
     # ── Persist ───────────────────────────────────────────────────────────────
     try:
@@ -87,11 +101,22 @@ def render(db: Session) -> None:
             name=uni_name.strip(),
             slug=slug,
             department_list=json.dumps(departments),
+            status="pending",
         )
         db.add(uni)
         db.flush()  # get uni.id before creating the user
 
         auth_svc = AuthService(db)
+
+        # Pre-check: admin email already taken within this university scope?
+        if auth_svc.check_email_exists(uni.id, admin_email.strip()):
+            db.rollback()
+            st.error(
+                "This email is already registered. "
+                "Please sign in instead, or use a different email."
+            )
+            return
+
         admin_user = auth_svc.register_user(
             university_id=uni.id,
             name=admin_name.strip(),
@@ -101,16 +126,12 @@ def render(db: Session) -> None:
         )
         # register_user already commits; no second commit needed.
 
-        st.success(
-            f"✅ **{uni.name}** has been registered successfully! "
-            f"Admin account for **{admin_user.email}** is active."
+        registration_limiter.reset(admin_email)  # Clear limit on success
+        st.info(
+            f"**{uni.name}** has been registered successfully!\n\n"
+            f"Your university registration is under review. You'll receive access once approved."
         )
 
-        # Store in session and rerun to refresh navigation and profile cards
-        st.session_state.university = uni
-        st.session_state.user = admin_user
-        st.rerun()
-
-    except Exception as exc:
+    except Exception:
         db.rollback()
-        st.error(f"⚠️ Something went wrong: {exc}")
+        st.error("Something went wrong creating the university. Please try again.")

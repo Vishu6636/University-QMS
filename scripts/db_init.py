@@ -54,11 +54,7 @@ def drop_tables() -> None:
 
 def seed_demo_data() -> None:
     """Insert minimal demo data for local development and testing."""
-    import hashlib
-
-    def _hash(password: str) -> str:
-        """Simple SHA-256 hash — replace with bcrypt in production."""
-        return hashlib.sha256(password.encode()).hexdigest()
+    from services.auth_service import _hash_password as _hash
 
     db = SessionLocal()
     try:
@@ -72,15 +68,36 @@ def seed_demo_data() -> None:
                 name="Greenfield University",
                 slug="greenfield",
                 department_list='["Computer Science", "Mathematics", "Business", "Law"]',
+                status="approved",
             ),
             University(
                 name="Silverstone Institute of Technology",
                 slug="silverstone",
                 department_list='["Engineering", "Physics", "Data Science"]',
+                status="approved",
             ),
         ]
         db.add_all(unis)
         db.flush()  # populate IDs
+
+        # ── Super Admin ───────────────────────────────────────────────────────
+        from dotenv import load_dotenv
+        load_dotenv()
+        superadmin_email = os.environ.get("SUPERADMIN_EMAIL")
+        superadmin_password = os.environ.get("SUPERADMIN_PASSWORD")
+        if superadmin_email and superadmin_password:
+            superadmin = User(
+                university_id=None,
+                name="System Super Admin",
+                email=superadmin_email,
+                password_hash=_hash(superadmin_password),
+                role=UserRole.super_admin,
+            )
+            db.add(superadmin)
+            db.flush()
+            log.info("Super Admin seeded successfully.")
+        else:
+            log.warning("SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD environment variables not set — skipping Super Admin seeding.")
 
         # ── Admins ────────────────────────────────────────────────────────────
         admins = [

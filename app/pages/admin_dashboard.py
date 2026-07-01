@@ -11,8 +11,10 @@ Contains pages for:
 Strictly scopes every query to the logged-in university_id.
 """
 
+import io
 import json
 import streamlit as st
+import pandas as pd
 from sqlalchemy.orm import Session
 
 from models.university import University
@@ -20,13 +22,17 @@ from models.user import User
 from models.ticket import Ticket, TicketStatus, TicketPriority
 from models.feedback import Feedback
 from models.kb_document import DocType, KBDocument
+from models.lead import Lead
+from models.audit_log import AuditLog
 from services.ticket_service import TicketService
 from services.kb_service import KBService
+from services.audit_service import AuditService
+from utils.timezone import to_ist
 
 
 def render(db: Session, university: University, user: User) -> None:
     """Main admin portal layout with tabs."""
-    st.markdown(f"<h2>🛠 Admin Portal &mdash; {university.name}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2>Admin Portal &mdash; {university.name}</h2>", unsafe_allow_html=True)
     st.markdown(
         f"<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         f"Monitor metrics, process tickets, manage knowledge base documents, and configure channels."
@@ -34,12 +40,18 @@ def render(db: Session, university: University, user: User) -> None:
         unsafe_allow_html=True,
     )
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Dashboard Overview",
-        "🎫 Ticket Management",
-        "📈 Analytics & Insights",
-        "⚙️ Portal Settings",
-        "📚 Knowledge Base"
+    # Count leads for tab label badge
+    lead_count = db.query(Lead).filter(Lead.university_id == university.id).count()
+    leads_label = f"Admissions Leads ({lead_count})" if lead_count > 0 else "Admissions Leads"
+
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "Dashboard Overview",
+        "Ticket Management",
+        "Analytics & Insights",
+        "Portal Settings",
+        "Knowledge Base",
+        leads_label,
+        "Audit Log",
     ])
 
     with tab1:
@@ -57,6 +69,12 @@ def render(db: Session, university: University, user: User) -> None:
     with tab5:
         render_kb(db, university, user)
 
+    with tab6:
+        render_leads(db, university, user)
+
+    with tab7:
+        render_audit(db, university, user)
+
 
 def render_overview(db: Session, university: University, user: User) -> None:
     """Page 1: Overview Dashboard."""
@@ -65,7 +83,7 @@ def render_overview(db: Session, university: University, user: User) -> None:
         st.error("Access denied: Invalid tenant context.")
         return
 
-    st.markdown("<h3>📊 Operations Overview</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Operations Overview</h3>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         "Real-time operational metrics and query status breakdown."
@@ -141,7 +159,7 @@ def render_tickets(db: Session, university: University, user: User) -> None:
         st.error("Access denied: Invalid tenant context.")
         return
 
-    st.markdown("<h3>🎫 Ticket Management</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Ticket Management</h3>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         "Review student tickets, filter by department, priority, or status, and update progress."
@@ -180,11 +198,37 @@ def render_tickets(db: Session, university: University, user: User) -> None:
     if not tickets:
         st.markdown(
             "<div style='padding: 2rem; border: 1px dashed #E5E5E5; border-radius: 8px; text-align: center; color: #6B6B6B;'>"
-            "🔍 No tickets match the selected filters."
+            "No tickets match the selected filters."
             "</div>",
             unsafe_allow_html=True
         )
         return
+
+    # ── CSV Export for tickets ─────────────────────────────────────────────
+    ticket_rows = []
+    for t in tickets:
+        student_info = t.student
+        ticket_rows.append({
+            "ID": t.id,
+            "Title": t.title,
+            "Status": t.status.value,
+            "Priority": t.priority.value,
+            "Department": t.department or "",
+            "Student": f"{student_info.name} ({student_info.email})" if student_info else f"ID:{t.student_id}",
+            "Created": to_ist(t.created_at).strftime("%Y-%m-%d %H:%M") if t.created_at else "",
+            "Description": t.description or "",
+        })
+    ticket_df = pd.DataFrame(ticket_rows)
+    csv_buf = io.StringIO()
+    ticket_df.to_csv(csv_buf, index=False)
+    st.download_button(
+        label="Export Tickets as CSV",
+        data=csv_buf.getvalue(),
+        file_name=f"{scoped_uni.slug}_tickets.csv",
+        mime="text/csv",
+        key="btn_export_tickets_csv",
+        use_container_width=True,
+    )
 
     for t in tickets:
         status_value = t.status.value
@@ -199,7 +243,7 @@ def render_tickets(db: Session, university: University, user: User) -> None:
         student_label = f"{student_info.name} ({student_info.email})" if student_info else f"Student ID: {t.student_id}"
 
         # Created date formatting
-        created_date = t.created_at.strftime("%B %d, %Y at %I:%M %p")
+        created_date = to_ist(t.created_at).strftime("%B %d, %Y at %I:%M %p")
 
         # Sentiment block
         sentiment_html = ""
@@ -227,7 +271,7 @@ def render_tickets(db: Session, university: University, user: User) -> None:
                 st.markdown(
                     f"<div style='margin: 12px 0; padding: 10px 14px; background: #DCFCE7; "
                     f"border-radius: 6px; border: 1px solid #BBF7D0; color: #16A34A; font-size:13px;'>"
-                    f"<b>⭐ Post-Resolution Feedback:</b> "
+                    f"<b>Post-Resolution Feedback:</b> "
                     f"{t.feedback.satisfaction_score}/5 &mdash; <i>{t.feedback.comment or 'No comment'}</i>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -263,13 +307,52 @@ def render_tickets(db: Session, university: University, user: User) -> None:
                         options=[s.value for s in valid_next_statuses],
                         key=f"status_select_{t.id}"
                     )
+                    resolution_text = ""
+                    if new_status_str == "resolved":
+                        resolution_text = st.text_area(
+                            "Provide Resolution Text / Answer",
+                            placeholder="Type the answer/resolution for the student...",
+                            key=f"resolution_text_{t.id}"
+                        )
                     if st.button("Apply Status Transition", key=f"btn_apply_status_{t.id}", use_container_width=True):
-                        try:
-                            svc.update_ticket_status(t.id, TicketStatus(new_status_str))
-                            st.success(f"✅ Ticket #{t.id} successfully updated to '{new_status_str}'!")
-                            st.rerun()
-                        except ValueError as e:
-                            st.error(f"Cannot update status: {e}")
+                        if new_status_str == "resolved" and not resolution_text.strip():
+                            st.error("Please provide a resolution answer for the student.")
+                        else:
+                            try:
+                                old_status = t.status.value
+                                svc.update_ticket_status(
+                                    t.id, 
+                                    TicketStatus(new_status_str),
+                                    resolution_text=resolution_text.strip() if new_status_str == "resolved" else None
+                                )
+                                AuditService.log(db,
+                                    university_id=scoped_uni.id,
+                                    actor_user_id=user.id,
+                                    action="ticket_status_change",
+                                    target_type="Ticket",
+                                    target_id=t.id,
+                                    details={
+                                        "from": old_status, 
+                                        "to": new_status_str,
+                                        "resolution_text": resolution_text.strip() if new_status_str == "resolved" else None
+                                    },
+                                )
+                                if new_status_str == "resolved" and resolution_text.strip():
+                                    try:
+                                        from services.kb_service import KBService
+                                        from models.kb_document import DocType
+                                        kb_svc = KBService(db, scoped_uni)
+                                        kb_svc.add_document(
+                                            filename=f"resolved_ticket_{t.id}.txt",
+                                            content_text=f"Question: {t.title}\nAnswer: {resolution_text.strip()}",
+                                            doc_type=DocType.faq
+                                        )
+                                    except Exception as ex:
+                                        st.warning(f"Ticket resolved, but failed to index answer to KB: {ex}")
+                                st.success(f"Ticket #{t.id} successfully updated to '{new_status_str}'!")
+                                st.rerun()
+                            except ValueError as e:
+                                st.error(f"Cannot update status: {e}")
 
             with acol2:
                 new_prio_str = st.selectbox(
@@ -280,7 +363,7 @@ def render_tickets(db: Session, university: University, user: User) -> None:
                 )
                 if st.button("Apply Priority Update", key=f"btn_apply_prio_{t.id}", use_container_width=True):
                     svc.update_priority(t.id, TicketPriority(new_prio_str))
-                    st.success(f"✅ Ticket #{t.id} priority updated to '{new_prio_str}'!")
+                    st.success(f"Ticket #{t.id} priority updated to '{new_prio_str}'!")
                     st.rerun()
 
 
@@ -291,7 +374,7 @@ def render_kb(db: Session, university: University, user: User) -> None:
         st.error("Access denied: Invalid tenant context.")
         return
 
-    st.markdown("<h3>📚 Knowledge Base Management</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Knowledge Base Management</h3>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         "Upload new institutional documents (txt or pdf) to index them into the RAG system, or manage existing records."
@@ -303,7 +386,7 @@ def render_kb(db: Session, university: University, user: User) -> None:
 
     # Document Uploader Card
     st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
-    st.write("#### 📤 Upload Document")
+    st.write("#### Upload Document")
     
     with st.form("upload_kb_doc_form"):
         uploaded_file = st.file_uploader(
@@ -340,12 +423,20 @@ def render_kb(db: Session, university: University, user: User) -> None:
                         content_text=text_content,
                         doc_type=DocType(doc_type_val)
                     )
-                    st.success(f"✅ Document '{doc.filename}' uploaded and indexed successfully!")
+                    AuditService.log(db,
+                        university_id=scoped_uni.id,
+                        actor_user_id=user.id,
+                        action="kb_doc_upload",
+                        target_type="KBDocument",
+                        target_id=doc.id,
+                        details={"filename": doc.filename},
+                    )
+                    st.success(f"Document '{doc.filename}' uploaded and indexed successfully!")
                     st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Document List
-    st.markdown("<h3>📚 Existing Documents</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Existing Documents</h3>", unsafe_allow_html=True)
     
     docs = kb_svc.list_documents()
     if not docs:
@@ -353,8 +444,8 @@ def render_kb(db: Session, university: University, user: User) -> None:
         return
 
     for doc in docs:
-        created_at_str = doc.uploaded_at.strftime("%B %d, %Y at %I:%M %p")
-        with st.expander(f"📄 {doc.filename} ({doc.doc_type.value.upper()})"):
+        created_at_str = to_ist(doc.uploaded_at).strftime("%B %d, %Y at %I:%M %p")
+        with st.expander(f"{doc.filename} ({doc.doc_type.value.upper()})"):
             st.markdown(
                 f"<p style='color:#6B6B6B; font-size:0.85rem; margin-bottom:8px;'>"
                 f"<b>Uploaded:</b> {created_at_str} | <b>Size:</b> {len(doc.content_text):,} characters"
@@ -369,12 +460,40 @@ def render_kb(db: Session, university: University, user: User) -> None:
                 key=f"kb_preview_{doc.id}"
             )
             
-            if st.button("🗑 Remove Document", key=f"btn_del_doc_{doc.id}", use_container_width=True):
-                if kb_svc.delete_document(doc.id):
-                    st.success("✅ Document and its vector index deleted successfully!")
+            confirm_key = f"confirm_delete_admin_{doc.id}"
+            if st.session_state.get(confirm_key):
+                st.warning(f"Are you sure you want to permanently delete **{doc.filename}**? "
+                           "This will remove it from the database AND the RAG vector index. "
+                           "Students will no longer get answers from this document.")
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button("Yes, Delete Permanently",
+                                 key=f"btn_confirm_yes_admin_{doc.id}",
+                                 use_container_width=True):
+                        doc_filename = doc.filename
+                        doc_id = doc.id
+                        if kb_svc.delete_document(doc_id):
+                            AuditService.log(db,
+                                university_id=scoped_uni.id,
+                                actor_user_id=user.id,
+                                action="kb_doc_delete",
+                                target_type="KBDocument",
+                                target_id=doc_id,
+                                details={"filename": doc_filename, "source": "admin_dashboard_kb"},
+                            )
+                            st.session_state.pop(confirm_key, None)
+                            st.success("Document and its vector index deleted successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to delete document.")
+                with col_no:
+                    if st.button("Cancel", key=f"btn_confirm_no_admin_{doc.id}", use_container_width=True):
+                        st.session_state.pop(confirm_key, None)
+                        st.rerun()
+            else:
+                if st.button("Remove Document", key=f"btn_del_doc_{doc.id}", use_container_width=True):
+                    st.session_state[confirm_key] = True
                     st.rerun()
-                else:
-                    st.error("Failed to delete document.")
 
 
 def render_settings(db: Session, university: University, user: User) -> None:
@@ -384,7 +503,7 @@ def render_settings(db: Session, university: University, user: User) -> None:
         st.error("Access denied: Invalid tenant context.")
         return
 
-    st.markdown("<h3>⚙️ Portal Settings</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Portal Settings</h3>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         "Manage institutional settings, routing channels, and support departments."
@@ -393,7 +512,7 @@ def render_settings(db: Session, university: University, user: User) -> None:
     )
 
     st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
-    st.write("#### 🏛 Support Departments")
+    st.write("#### Support Departments")
     st.write("Edit the list of support channels. Enter each department name on a new line.")
 
     current_dept_text = "\n".join(scoped_uni.departments)
@@ -417,12 +536,91 @@ def render_settings(db: Session, university: University, user: User) -> None:
         if not new_departments:
             st.error("The university must have at least one department registered.")
         else:
-            scoped_uni.departments = new_departments
-            db.commit()
-            st.success("✅ Portal settings and support departments updated successfully!")
-            st.rerun()
+            try:
+                old_departments = list(scoped_uni.departments)
+                scoped_uni.departments = new_departments
+                db.commit()
+                AuditService.log(
+                    db,
+                    university_id=scoped_uni.id,
+                    actor_user_id=user.id,
+                    action="settings_update",
+                    target_type="University",
+                    target_id=scoped_uni.id,
+                    details={"old_departments": old_departments, "new_departments": new_departments},
+                )
+                st.success("Portal settings and support departments updated successfully!")
+                st.rerun()
+            except Exception as e:
+                db.rollback()
+                st.error(f"Failed to update settings: {e}")
             
     st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Administrator Credentials Form ──
+    st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
+    st.write("#### Administrator Credentials")
+    st.write("Update your admin account email and/or password.")
+
+    with st.form("admin_credentials_form"):
+        new_email = st.text_input(
+            "Administrator Email",
+            value=user.email,
+            placeholder="admin@university.edu"
+        )
+        current_pass = st.text_input(
+            "Current Password (required to save changes)",
+            type="password",
+            placeholder="••••••••"
+        )
+        new_pass = st.text_input(
+            "New Password (optional)",
+            type="password",
+            placeholder="Minimum 6 characters"
+        )
+        new_pass_confirm = st.text_input(
+            "Confirm New Password (optional)",
+            type="password",
+            placeholder="••••••••"
+        )
+        submit_creds = st.form_submit_button("Update Credentials", use_container_width=True)
+
+    if submit_creds:
+        errors = []
+        if not new_email.strip():
+            errors.append("Email address is required.")
+        if not current_pass:
+            errors.append("Current password is required to save changes.")
+        if new_pass:
+            if len(new_pass) < 8:
+                errors.append("New password must be at least 8 characters.")
+            elif not any(ch.isdigit() for ch in new_pass):
+                errors.append("New password must contain at least one number.")
+            if new_pass != new_pass_confirm:
+                errors.append("New passwords do not match.")
+
+        if errors:
+            for e in errors:
+                st.error(f"{e}")
+        else:
+            from services.auth_service import AuthService
+            auth_svc = AuthService(db)
+            try:
+                updated_user = auth_svc.update_user_credentials(
+                    user_id=user.id,
+                    current_password=current_pass,
+                    new_email=new_email,
+                    new_password=new_pass if new_pass else None
+                )
+                st.session_state.user = updated_user
+                st.success("Administrator credentials updated successfully!")
+                st.rerun()
+            except ValueError as ve:
+                st.error(f"{ve}")
+            except Exception as ex:
+                st.error(f"Error updating credentials: {ex}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 def render_analytics(db: Session, university: University, user: User) -> None:
@@ -432,7 +630,7 @@ def render_analytics(db: Session, university: University, user: User) -> None:
         st.error("Access denied: Invalid tenant context.")
         return
 
-    st.markdown("<h3>📈 Analytics & Insights</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Analytics & Insights</h3>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         "Detailed performance analytics, resolution times, student satisfaction, and intent insights."
@@ -693,3 +891,149 @@ def render_analytics(db: Session, university: University, user: User) -> None:
                 st.plotly_chart(fig_intent, use_container_width=True)
         except Exception as e:
             st.error(f"Failed to load or execute intent classifier: {e}")
+
+
+def render_leads(db: Session, university: University, user: User) -> None:
+    """Page 6: Admissions Leads — prospective inquirer contact info."""
+    scoped_uni = db.query(University).filter(University.id == university.id).first()
+    if not scoped_uni:
+        st.error("Access denied: Invalid tenant context.")
+        return
+
+    st.markdown("<h3>Admissions Leads</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
+        "Prospective inquirers who chatted with your public knowledge base and submitted their contact info. "
+        "Follow up to convert them into enrolled students."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    # Query leads scoped to this university, newest first
+    leads = (
+        db.query(Lead)
+        .filter(Lead.university_id == scoped_uni.id)
+        .order_by(Lead.created_at.desc())
+        .all()
+    )
+
+    if not leads:
+        st.markdown(
+            "<div style='padding: 2rem; border: 1px dashed #E5E5E5; border-radius: 8px; text-align: center; color: #6B6B6B;'>"
+            "No leads yet. Once prospective students use the "
+            "<b>Public Inquiry</b> chat and submit their info, they'll appear here."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    # KPI summary
+    k1, k2 = st.columns(2)
+    with k1:
+        st.markdown(
+            f"<div class='uqms-card kpi'>"
+            f"<div class='value' style='color:#4F46E5;'>{len(leads)}</div>"
+            f"<div class='label'>Total Leads</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    with k2:
+        from datetime import datetime, timezone, timedelta
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        recent = sum(1 for l in leads if l.created_at and l.created_at.replace(tzinfo=timezone.utc) >= week_ago)
+        st.markdown(
+            f"<div class='uqms-card kpi'>"
+            f"<div class='value' style='color:#16A34A;'>{recent}</div>"
+            f"<div class='label'>Last 7 Days</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+
+    # Build dataframe
+    leads_data = []
+    for l in leads:
+        leads_data.append({
+            "Name": l.name or "—",
+            "Email": l.email,
+            "Phone": l.phone or "—",
+            "Inquiry Summary": l.inquiry_summary,
+            "Date": to_ist(l.created_at).strftime("%B %d, %Y at %I:%M %p") if l.created_at else "—",
+        })
+
+    df = pd.DataFrame(leads_data)
+
+    # CSV Export
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False)
+    csv_data = csv_buffer.getvalue()
+
+    st.download_button(
+        label="Export Leads as CSV",
+        data=csv_data,
+        file_name=f"{scoped_uni.slug}_leads.csv",
+        mime="text/csv",
+        key="btn_export_leads_csv",
+        use_container_width=True,
+    )
+
+    st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
+
+    # Display table
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Name": st.column_config.TextColumn("Name", width="medium"),
+            "Email": st.column_config.TextColumn("Email", width="medium"),
+            "Phone": st.column_config.TextColumn("Phone", width="small"),
+            "Inquiry Summary": st.column_config.TextColumn("Inquiry", width="large"),
+            "Date": st.column_config.TextColumn("Submitted", width="medium"),
+        },
+    )
+
+
+def render_audit(db: Session, university: University, user: User) -> None:
+    """Page 7: Audit Log (scoped to this university)."""
+    scoped_uni = db.query(University).filter(University.id == university.id).first()
+    if not scoped_uni:
+        st.error("Access denied: Invalid tenant context.")
+        return
+
+    st.markdown("<h3>University Audit Log</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
+        "Audit trail of all administrative and KB activities within this institution."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    audit_entries = (
+        db.query(AuditLog)
+        .filter(AuditLog.university_id == scoped_uni.id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(200)
+        .all()
+    )
+
+    if not audit_entries:
+        st.info("No audit events recorded yet for this university.")
+    else:
+        audit_data = []
+        for entry in audit_entries:
+            actor_name = entry.actor.name if entry.actor else "—"
+            audit_data.append({
+                "Timestamp": to_ist(entry.created_at).strftime("%Y-%m-%d %H:%M:%S") if entry.created_at else "—",
+                "Actor": actor_name,
+                "Action": entry.action,
+                "Target": f"{entry.target_type or ''}#{entry.target_id or ''}",
+                "Details": entry.details or "",
+            })
+
+        st.dataframe(
+            pd.DataFrame(audit_data),
+            use_container_width=True,
+            hide_index=True,
+        )
