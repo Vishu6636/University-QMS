@@ -148,7 +148,7 @@ def render(uni, user) -> None:
                     
                     # Fallback to general RAG if no match
                     if answer_text is None:
-                        result = answer_query(uni.id, query)
+                        result = answer_query(uni.id, query, db=db)
                         answer_text = result["answer"]
                         st.markdown(answer_text)
                         st.markdown(

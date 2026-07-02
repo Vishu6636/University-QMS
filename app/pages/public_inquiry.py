@@ -123,7 +123,7 @@ def render() -> None:
             # Get answer — NO db/student_id so no ticket auto-escalation
             with st.chat_message("assistant"):
                 with st.spinner("Searching knowledge base…"):
-                    result = answer_query(uni.id, query, db=None, student_id=None)
+                    result = answer_query(uni.id, query, db=db, student_id=None)
 
                 st.markdown(result["answer"])
 

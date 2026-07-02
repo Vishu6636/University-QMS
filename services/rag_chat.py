@@ -55,6 +55,31 @@ def answer_query(
             "escalate": bool,   # True when model says it lacks information
         }
     """
+    # Auto-healing check before retrieval
+    if db is not None:
+        try:
+            from services.ingestion import _get_chroma_client, _collection_name
+            client = _get_chroma_client()
+            collection = client.get_or_create_collection(
+                name=_collection_name(university_id),
+                metadata={"hnsw:space": "cosine"},
+            )
+            if collection.count() == 0:
+                from models.kb_document import KBDocument
+                db_docs_count = db.query(KBDocument).filter(
+                    KBDocument.university_id == university_id
+                ).count()
+                if db_docs_count > 0:
+                    log.info("Auto-healing: Chroma collection is empty but DB has %d docs. Reindexing...", db_docs_count)
+                    from models.university import University
+                    uni = db.query(University).filter(University.id == university_id).first()
+                    if uni:
+                        from services.kb_service import KBService
+                        kb_svc = KBService(db, uni)
+                        kb_svc.reindex_all()
+        except Exception as e_reindex:
+            log.warning("Auto-healing Chroma in answer_query failed: %s", e_reindex)
+
     # 1. Retrieve relevant chunks
     chunks = retrieve(university_id, query, k=TOP_K)
 

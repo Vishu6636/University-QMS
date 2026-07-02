@@ -159,7 +159,7 @@ def render_submit_ticket(db: Session, university: University, user: User) -> Non
         else:
             with st.spinner("Checking knowledge base..."):
                 from services.rag_chat import answer_query
-                result = answer_query(university.id, description.strip(), db=None, student_id=None)
+                result = answer_query(university.id, description.strip(), db=db, student_id=None)
                 st.session_state[kb_check_key] = result
                 # If AI can't answer (escalates), then we skip confirmation and show form
                 if result["escalate"]:
