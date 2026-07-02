@@ -278,17 +278,53 @@ def render(db: Session, current_user: User) -> None:
                     .all()
                 )
                 if existing_admins:
-                    admin_list_html = "".join(
-                        f"<li style='margin:2px 0;'>{a.name} — <code>{a.email}</code></li>"
-                        for a in existing_admins
-                    )
                     st.markdown(
-                        f"<div class='uqms-card'>"
+                        f"<div class='uqms-card' style='margin-bottom: 1rem;'>"
                         f"<p style='margin:0 0 6px 0; font-weight:600; font-size:14px;'>Existing Admins ({len(existing_admins)})</p>"
-                        f"<ul style='margin:0; padding-left:1.2rem; color:#6B6B6B; font-size:13px;'>{admin_list_html}</ul>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
+                    for a in existing_admins:
+                        st.markdown(
+                            f"<div class='uqms-card' style='margin-bottom: 0.2rem; padding: 0.5rem 1rem;'>"
+                            f"<b style='font-size:14px;'>{a.name}</b> &bull; <code style='font-size:12px;'>{a.email}</code>"
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                        with st.expander(f"Remove {a.name}"):
+                            st.warning(f"Are you sure you want to permanently remove admin account **{a.name}** ({a.email})?")
+                            confirm_email = st.text_input(
+                                f"Type '{a.email}' to confirm removal:",
+                                key=f"confirm_email_{a.id}"
+                            )
+                            if st.button(f"Permanently Remove {a.name}", key=f"btn_rem_admin_{a.id}", type="primary", disabled=(confirm_email != a.email)):
+                                try:
+                                    # 1. Null out actor_user_id in AuditLog for this specific admin user to avoid constraint violations.
+                                    db.query(AuditLog).filter(AuditLog.actor_user_id == a.id).update(
+                                        {AuditLog.actor_user_id: None}, synchronize_session=False
+                                    )
+                                    db.commit()
+                                    
+                                    # 2. Log removal event in AuditLog
+                                    AuditService.log(
+                                        db,
+                                        university_id=selected_uni.id,
+                                        actor_user_id=current_user.id,
+                                        action="remove_admin",
+                                        target_type="User",
+                                        target_id=a.id,
+                                        details={"admin_name": a.name, "admin_email": a.email, "university_name": selected_uni.name},
+                                    )
+                                    
+                                    # 3. Delete the admin user
+                                    db.delete(a)
+                                    db.commit()
+                                    
+                                    st.success(f"Successfully removed admin {a.name}!")
+                                    st.rerun()
+                                except Exception as e:
+                                    db.rollback()
+                                    st.error(f"Failed to remove admin: {e}")
                 else:
                     st.caption("ℹ️ This university currently has no admin accounts.")
 
