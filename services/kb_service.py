@@ -136,6 +136,19 @@ class KBService:
         Returns a list of dicts with keys: text, score, filename, doc_type.
         """
         collection = self._get_collection()
+
+        # Auto-healing: Rebuild Chroma vector index on-the-fly if wiped by container restart
+        try:
+            if collection.count() == 0:
+                db_docs_count = self.db.query(KBDocument).filter(
+                    KBDocument.university_id == self.university.id
+                ).count()
+                if db_docs_count > 0:
+                    log.info("Chroma collection is empty but database contains %d documents. Reindexing...", db_docs_count)
+                    self.reindex_all()
+        except Exception as e_reindex:
+            log.warning("Auto-healing Chroma check failed: %s", e_reindex)
+
         try:
             results = collection.query(
                 query_texts=[query],
