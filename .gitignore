@@ -16,6 +16,7 @@ ENV/
 data/*.db
 data/chroma/
 chroma/
+data/test_chroma_isolation/
 
 # OS-specific files
 .DS_Store

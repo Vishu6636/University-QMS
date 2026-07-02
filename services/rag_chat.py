@@ -19,6 +19,7 @@ except ImportError:
 
 from groq import Groq
 from services.ingestion import retrieve
+from utils.structured_logger import log_event
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +97,8 @@ def answer_query(
             log.exception("Groq API call failed: %s", e)
             if sentry_sdk:
                 sentry_sdk.capture_exception(e)
+            log_event("groq_api_failure", error=str(e), university_id=university_id, query=query)
+            log_event("rag_query_error", error=str(e), university_id=university_id, query=query)
             answer = "Sorry, there was an error reaching the AI service. Please try again."
 
         escalate = "escalate this to a ticket" in answer.lower()

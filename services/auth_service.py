@@ -8,6 +8,7 @@ Passwords are hashed with bcrypt (falls back to SHA-256 if bcrypt is unavailable
 
 import hashlib
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -91,6 +92,7 @@ class AuthService:
         password: str,
         role: UserRole = UserRole.student,
         department: Optional[str] = None,
+        privacy_consent_given: bool = False,
     ) -> User:
         """
         Create a new user.
@@ -107,6 +109,8 @@ class AuthService:
                 "Please sign in instead, or use a different email."
             )
 
+        consent_time = datetime.now(timezone.utc) if privacy_consent_given else None
+
         user = User(
             university_id=university_id,
             name=name,
@@ -114,6 +118,7 @@ class AuthService:
             password_hash=_hash_password(password),
             role=role,
             department=department,
+            privacy_consent_given_at=consent_time,
         )
         try:
             self.db.add(user)

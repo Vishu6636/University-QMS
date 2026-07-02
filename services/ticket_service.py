@@ -20,6 +20,7 @@ from sqlalchemy import desc
 
 from models.ticket import Ticket, TicketStatus, TicketPriority
 from models.feedback import Feedback
+from utils.structured_logger import log_event
 
 log = logging.getLogger(__name__)
 
@@ -123,6 +124,7 @@ class TicketService:
             raise
         log.info("Created ticket id=%s for student_id=%s department=%s priority=%s",
                  ticket.id, student_id, ticket.department, ticket.priority)
+        log_event("ticket_created", ticket_id=ticket.id, student_id=student_id, department=ticket.department, priority=ticket.priority.value, university_id=self.university_id)
         return ticket
 
     # ── Read ───────────────────────────────────────────────────────────────────

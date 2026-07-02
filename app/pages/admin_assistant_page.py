@@ -129,38 +129,44 @@ def render(uni, user) -> None:
     query = st.chat_input("Ask a question about operations or documentation…", key=f"admin_assistant_input_{uni.id}_{user.id}")
 
     if query:
-        # Show user message
-        with st.chat_message("user"):
-            st.markdown(query)
-        history.append({"role": "user", "content": query})
+        # Check rate limiter
+        from services.rate_limiter import rag_query_limiter
+        allowed, retry_after = rag_query_limiter.record_attempt(user.email)
+        if not allowed:
+            st.error(f"Too many requests. Please wait {retry_after} second{'s' if retry_after != 1 else ''} before trying again.")
+        else:
+            # Show user message
+            with st.chat_message("user"):
+                st.markdown(query)
+            history.append({"role": "user", "content": query})
 
-        # Process message
-        with st.chat_message("assistant"):
-            with st.spinner("Processing query…"):
-                # First check rule-based match
-                answer_text = classify_and_execute(query, db, uni.id)
-                
-                # Fallback to general RAG if no match
-                if answer_text is None:
-                    result = answer_query(uni.id, query)
-                    answer_text = result["answer"]
-                    st.markdown(answer_text)
-                    st.markdown(
-                        f"<p style='font-size:12px; color:#6B6B6B; margin: 4px 0 0 0;'>"
-                        f"🤖 Generated via Groq RAG — {result['chunks_used']} chunk(s) used"
-                        f"</p>",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.markdown(answer_text)
-                    st.markdown(
-                        f"<p style='font-size:12px; color:#6B6B6B; margin: 4px 0 0 0;'>"
-                        f"⚡ SQL Direct Query Result"
-                        f"</p>",
-                        unsafe_allow_html=True
-                    )
+            # Process message
+            with st.chat_message("assistant"):
+                with st.spinner("Processing query…"):
+                    # First check rule-based match
+                    answer_text = classify_and_execute(query, db, uni.id)
+                    
+                    # Fallback to general RAG if no match
+                    if answer_text is None:
+                        result = answer_query(uni.id, query)
+                        answer_text = result["answer"]
+                        st.markdown(answer_text)
+                        st.markdown(
+                            f"<p style='font-size:12px; color:#6B6B6B; margin: 4px 0 0 0;'>"
+                            f"🤖 Generated via Groq RAG — {result['chunks_used']} chunk(s) used"
+                            f"</p>",
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        st.markdown(answer_text)
+                        st.markdown(
+                            f"<p style='font-size:12px; color:#6B6B6B; margin: 4px 0 0 0;'>"
+                            f"⚡ SQL Direct Query Result"
+                            f"</p>",
+                            unsafe_allow_html=True
+                        )
 
-        history.append({"role": "assistant", "content": answer_text})
+            history.append({"role": "assistant", "content": answer_text})
 
     # Clear chat button
     if history:

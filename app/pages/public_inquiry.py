@@ -20,8 +20,27 @@ from services.auth_service import AuthService
 from services.rag_chat import answer_query
 
 
+def _get_client_ip() -> str:
+    """Safely retrieve the client IP from Streamlit headers (Tornado request context)."""
+    try:
+        # Check newer Streamlit version headers
+        headers = getattr(st, "context", None)
+        if headers is not None and hasattr(headers, "headers"):
+            h = headers.headers
+            for key in ["X-Forwarded-For", "X-Real-IP", "x-forwarded-for", "x-real-ip"]:
+                val = h.get(key)
+                if val:
+                    return val.split(",")[0].strip()
+    except Exception:
+        pass
+    return "127.0.0.1"
+
+
 def render() -> None:
     """Render the public inquiry page."""
+    import uuid
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
     db = st.session_state.get("db") or SessionLocal()
 
     st.markdown("<h2>Ask About a University</h2>", unsafe_allow_html=True)
@@ -83,31 +102,44 @@ def render() -> None:
     )
 
     if query:
-        # Show user message
-        with st.chat_message("user"):
-            st.markdown(query)
-        history.append({"role": "user", "content": query})
+        # Check rate limiter (session and IP-based)
+        from services.rate_limiter import rag_query_limiter
+        session_key = st.session_state.get("session_id", "guest_default")
+        client_ip = _get_client_ip()
+        ip_key = f"ip_{client_ip}"
 
-        # Get answer — NO db/student_id so no ticket auto-escalation
-        with st.chat_message("assistant"):
-            with st.spinner("Searching knowledge base…"):
-                result = answer_query(uni.id, query, db=None, student_id=None)
+        allowed_session, retry_session = rag_query_limiter.record_attempt(session_key)
+        allowed_ip, retry_ip = rag_query_limiter.record_attempt(ip_key)
 
-            st.markdown(result["answer"])
+        if not allowed_session or not allowed_ip:
+            retry_after = max(retry_session, retry_ip)
+            st.error(f"Too many requests. Please wait {retry_after} second{'s' if retry_after != 1 else ''} before trying again.")
+        else:
+            # Show user message
+            with st.chat_message("user"):
+                st.markdown(query)
+            history.append({"role": "user", "content": query})
 
-            col1, col2 = st.columns([3, 1])
-            with col2:
-                st.markdown(
-                    f"<p style='font-size:12px; color:#6B6B6B; text-align:right; margin:0;'>"
-                    f"{result['chunks_used']} chunk(s) used"
-                    f"</p>",
-                    unsafe_allow_html=True,
-                )
+            # Get answer — NO db/student_id so no ticket auto-escalation
+            with st.chat_message("assistant"):
+                with st.spinner("Searching knowledge base…"):
+                    result = answer_query(uni.id, query, db=None, student_id=None)
 
-        history.append({
-            "role": "assistant",
-            "content": result["answer"],
-        })
+                st.markdown(result["answer"])
+
+                col1, col2 = st.columns([3, 1])
+                with col2:
+                    st.markdown(
+                        f"<p style='font-size:12px; color:#6B6B6B; text-align:right; margin:0;'>"
+                        f"{result['chunks_used']} chunk(s) used"
+                        f"</p>",
+                        unsafe_allow_html=True,
+                    )
+
+            history.append({
+                "role": "assistant",
+                "content": result["answer"],
+            })
 
     # Clear chat button
     if history:

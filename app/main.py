@@ -39,6 +39,7 @@ from models.lead import Lead
 from models.audit_log import AuditLog
 from services.auth_service import AuthService, validate_password
 from services.rate_limiter import login_limiter, registration_limiter
+from utils.structured_logger import log_event
 
 # Ensure data directory exists
 db_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
@@ -75,6 +76,11 @@ try:
         if "resolution_text" not in columns:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE tickets ADD COLUMN resolution_text TEXT"))
+    if "users" in inspector.get_table_names():
+        columns = [col["name"] for col in inspector.get_columns("users")]
+        if "privacy_consent_given_at" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN privacy_consent_given_at TIMESTAMP"))
 finally:
     db_inst.close()
 
@@ -823,11 +829,13 @@ def _show_login_page() -> None:
                     f"Too many login attempts. "
                     f"Please try again in {minutes_left} minute{'s' if minutes_left != 1 else ''}."
                 )
+                log_event("login_blocked", email=email, university_id=uni.id, reason="rate_limit")
             else:
                 auth = AuthService(db)
                 user = auth.authenticate(university_id=uni.id, email=email, password=password)
                 if user:
                     login_limiter.reset(email)  # Clear limit on success
+                    log_event("login_success", email=email, role=user.role.value, university_id=uni.id if user.role != UserRole.super_admin else None)
                     if user.role == UserRole.super_admin:
                         st.session_state.university = None
                         st.session_state.user = user
@@ -850,6 +858,7 @@ def _show_login_page() -> None:
                             st.error(f"Access restricted. Institution status: {user_uni.status}")
                 else:
                     st.error("Invalid email or password for the selected institution.")
+                    log_event("login_failed", email=email, university_id=uni.id, reason="invalid_credentials")
                 
     with login_tab2:
         st.markdown("<h4 style='margin-top:0;'>Create Student Account</h4>", unsafe_allow_html=True)
@@ -862,6 +871,8 @@ def _show_login_page() -> None:
         
         reg_password = st.text_input("Password", type="password", placeholder="Min 8 chars, at least 1 number", key="reg_password")
         reg_password_confirm = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="reg_password_confirm")
+        
+        reg_privacy = st.checkbox("I have read and agree to the Privacy Policy", value=False, key="reg_privacy")
         
         if st.button("Register & Log In", key="btn_student_register", use_container_width=True):
             errors = []
@@ -877,6 +888,8 @@ def _show_login_page() -> None:
                 errors.append(str(pw_err))
             if reg_password != reg_password_confirm:
                 errors.append("Passwords do not match.")
+            if not reg_privacy:
+                errors.append("You must agree to the Privacy Policy to register.")
             
             if errors:
                 for e in errors:
@@ -907,6 +920,7 @@ def _show_login_page() -> None:
                                 password=reg_password,
                                 role=UserRole.student,
                                 department=reg_dept,
+                                privacy_consent_given=True,
                             )
                             registration_limiter.reset(reg_email)  # Clear limit on success
                             st.session_state.university = uni
@@ -1048,6 +1062,14 @@ def page_super_admin_dashboard():
             _show_login_page()
     run_page(_run, bg_class="bg-super-admin")
 
+def page_privacy_policy():
+    def _run():
+        import importlib
+        privacy_module = importlib.import_module("app.pages.99_Privacy_Policy")
+        importlib.reload(privacy_module)
+        privacy_module.render()
+    run_page(_run, bg_class="bg-landing")
+
 # ── Navigation Definition ─────────────────────────────────────────────────────
 
 # Define pages for st.navigation
@@ -1060,6 +1082,7 @@ upload_pg = st.Page(page_document_upload, title="Document Upload", icon=":materi
 onboarding_pg = st.Page(page_onboarding, title="Onboarding", icon=":material/add_business:")
 public_inquiry_pg = st.Page(page_public_inquiry, title="Public Inquiry", icon=":material/public:")
 super_admin_pg = st.Page(page_super_admin_dashboard, title="Super Admin Console", icon=":material/admin_panel_settings:")
+privacy_policy_pg = st.Page(page_privacy_policy, title="Privacy Policy", icon=":material/policy:")
 
 # Build navigation dynamically based on user authentication state and role
 pages_to_show = [login_pg]
@@ -1077,6 +1100,8 @@ elif current_user.role == UserRole.student:
 elif current_user.role == UserRole.admin:
     # Logged in as admin: show admin dashboard, RAG chat, admin assistant and document upload
     pages_to_show.extend([admin_pg, rag_pg, admin_assistant_pg, upload_pg])
+
+pages_to_show.append(privacy_policy_pg)
 
 pg = st.navigation(pages_to_show)
 
@@ -1123,3 +1148,12 @@ if st.session_state.user is not None:
             if key != "db":
                 del st.session_state[key]
         st.rerun()
+
+# Always render a small Privacy Policy footer link at the bottom of the sidebar
+st.sidebar.markdown(
+    "<div style='text-align: center; margin-top: 1.5rem; font-size: 11px; color: #888888;'>"
+    "<hr style='border:0; border-top:1px solid #E5E5E5; margin: 0.5rem 0;'>"
+    "<a href='/Privacy_Policy' target='_self' style='color: #888888; text-decoration: none; font-weight: 500;'>Privacy Policy</a>"
+    "</div>",
+    unsafe_allow_html=True
+)

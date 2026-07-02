@@ -49,6 +49,7 @@ def render(db: Session) -> None:
         admin_email = st.text_input("Admin Email", placeholder="admin@university.edu")
         admin_pass = st.text_input("Password", type="password", placeholder="••••••••")
         admin_pass2 = st.text_input("Confirm Password", type="password", placeholder="••••••••")
+        onboarding_privacy = st.checkbox("I have read and agree to the Privacy Policy", value=False, key="onboarding_privacy")
 
         submitted = st.form_submit_button("Create University & Admin Account", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -70,6 +71,8 @@ def render(db: Session) -> None:
         errors.append(str(pw_err))
     if admin_pass != admin_pass2:
         errors.append("Passwords do not match.")
+    if not onboarding_privacy:
+        errors.append("You must agree to the Privacy Policy to register.")
 
     # Check slug uniqueness
     slug = _slugify(uni_name)
@@ -123,6 +126,7 @@ def render(db: Session) -> None:
             email=admin_email.strip(),
             password=admin_pass,
             role=UserRole.admin,
+            privacy_consent_given=True,
         )
         # register_user already commits; no second commit needed.
 

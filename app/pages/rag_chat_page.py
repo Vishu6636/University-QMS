@@ -36,37 +36,43 @@ def render(uni, user) -> None:
     query = st.chat_input("Type your question here…", key=f"chat_input_{uni.id}_{user.id}")
 
     if query:
-        # Show user message
-        with st.chat_message("user"):
-            st.markdown(query)
-        history.append({"role": "user", "content": query})
+        # Check rate limiter
+        from services.rate_limiter import rag_query_limiter
+        allowed, retry_after = rag_query_limiter.record_attempt(user.email)
+        if not allowed:
+            st.error(f"Too many requests. Please wait {retry_after} second{'s' if retry_after != 1 else ''} before trying again.")
+        else:
+            # Show user message
+            with st.chat_message("user"):
+                st.markdown(query)
+            history.append({"role": "user", "content": query})
 
-        # Get answer
-        with st.chat_message("assistant"):
-            with st.spinner("Searching knowledge base…"):
-                result = answer_query(uni.id, query, db=st.session_state.db, student_id=user.id)
+            # Get answer
+            with st.chat_message("assistant"):
+                with st.spinner("Searching knowledge base…"):
+                    result = answer_query(uni.id, query, db=st.session_state.db, student_id=user.id)
 
-            answer_text = result["answer"]
+                answer_text = result["answer"]
 
-            st.markdown(answer_text)
+                st.markdown(answer_text)
 
-            col1, col2 = st.columns([3, 1])
-            with col2:
-                st.markdown(
-                    f"<p style='font-size:12px; color:#6B6B6B; text-align:right; margin:0;'>"
-                    f"{result['chunks_used']} chunk(s) used"
-                    f"</p>",
-                    unsafe_allow_html=True
-                )
+                col1, col2 = st.columns([3, 1])
+                with col2:
+                    st.markdown(
+                        f"<p style='font-size:12px; color:#6B6B6B; text-align:right; margin:0;'>"
+                        f"{result['chunks_used']} chunk(s) used"
+                        f"</p>",
+                        unsafe_allow_html=True
+                    )
 
-            if result["escalate"]:
-                st.warning("Flagged for escalation to a support ticket.")
+                if result["escalate"]:
+                    st.warning("Flagged for escalation to a support ticket.")
 
-        history.append({
-            "role": "assistant",
-            "content": answer_text,
-            "escalate": result["escalate"],
-        })
+            history.append({
+                "role": "assistant",
+                "content": answer_text,
+                "escalate": result["escalate"],
+            })
 
     # Clear chat button
     if history:

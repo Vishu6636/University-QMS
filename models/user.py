@@ -38,6 +38,10 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    privacy_consent_given_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     # Relationships
     university = relationship("University", back_populates="users")
