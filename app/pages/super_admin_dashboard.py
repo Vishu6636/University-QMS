@@ -168,6 +168,65 @@ def render(db: Session, current_user: User) -> None:
                     )
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # Delete Controls with Confirmation
+                with st.expander(f"⚠️ Delete {uni.name}"):
+                    st.warning(
+                        "**Warning:** Deleting this institution will permanently remove its database record, "
+                        "and cascade-delete all associated students, admins, tickets, documents, and leads. "
+                        "This action cannot be undone."
+                    )
+                    confirm_input = st.text_input(
+                        f"Type '{uni.slug}' to confirm deletion:",
+                        key=f"del_confirm_{uni.id}"
+                    )
+                    
+                    if st.button(f"Permanently Delete {uni.name}", key=f"del_btn_{uni.id}", type="primary", disabled=(confirm_input != uni.slug)):
+                        try:
+                            # 1. Null out foreign key relations in AuditLog before deleting to avoid constraint violations.
+                            db.query(AuditLog).filter(AuditLog.university_id == uni.id).update(
+                                {AuditLog.university_id: None}, synchronize_session=False
+                            )
+                            
+                            user_ids = [u.id for u in db.query(User).filter(User.university_id == uni.id).all()]
+                            if user_ids:
+                                db.query(AuditLog).filter(AuditLog.actor_user_id.in_(user_ids)).update(
+                                    {AuditLog.actor_user_id: None}, synchronize_session=False
+                                )
+                            db.commit()
+
+                            # 2. Try to clean up ChromaDB collection
+                            try:
+                                from services.kb_service import _get_chroma_client
+                                client = _get_chroma_client()
+                                collection_name = f"university_{uni.id}"
+                                client.delete_collection(name=collection_name)
+                            except Exception:
+                                # Non-blocking if collection doesn't exist or Chroma is offline
+                                pass
+
+                            # 3. Log deletion audit event before committing university delete
+                            AuditService.log(
+                                db,
+                                university_id=None,
+                                actor_user_id=current_user.id,
+                                action="delete_institution",
+                                target_type="University",
+                                target_id=uni.id,
+                                details={"university_name": uni.name, "slug": uni.slug},
+                            )
+
+                            # 4. Perform database deletion (cascades to users, tickets, leads, etc.)
+                            db.delete(uni)
+                            db.commit()
+
+                            st.success(f"Successfully deleted {uni.name} and all associated data.")
+                            st.rerun()
+                        except Exception as e:
+                            db.rollback()
+                            st.error(f"Failed to delete university: {e}")
+
+                st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+
     # ── TAB 3: ADD ADMIN ──────────────────────────────────────────────────────
     with tab_add_admin:
         st.markdown("<h3>Create Additional Admin</h3>", unsafe_allow_html=True)
