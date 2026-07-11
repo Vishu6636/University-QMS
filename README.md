@@ -7,7 +7,10 @@ Designed with a premium, clean **Notion/Linear-style light aesthetic** and dynam
 ---
 ## live 
 https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/
-OR
+
+
+**OR**
+
 uqms66.up.railway.app
 
 ## Key Features
