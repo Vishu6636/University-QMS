@@ -9,6 +9,8 @@ from models.kb_document import KBDocument
 from models.feedback import Feedback
 from models.lead import Lead
 from models.audit_log import AuditLog
+from models.student_query_log import StudentQueryLog
+from models.platform_complaint import PlatformComplaint, ComplaintStatus
 
 __all__ = [
     "Base",
@@ -21,4 +23,7 @@ __all__ = [
     "Feedback",
     "Lead",
     "AuditLog",
+    "StudentQueryLog",
+    "PlatformComplaint",
+    "ComplaintStatus",
 ]

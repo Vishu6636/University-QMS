@@ -29,6 +29,8 @@ class University(Base):
     tickets = relationship("Ticket", back_populates="university", cascade="all, delete-orphan")
     kb_documents = relationship("KBDocument", back_populates="university", cascade="all, delete-orphan")
     leads = relationship("Lead", back_populates="university", cascade="all, delete-orphan")
+    student_query_logs = relationship("StudentQueryLog", back_populates="university", cascade="all, delete-orphan")
+    platform_complaints = relationship("PlatformComplaint", back_populates="university", cascade="all, delete-orphan")
 
     # ── Helpers ────────────────────────────────────────────────────────────────
 

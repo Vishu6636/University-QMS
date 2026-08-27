@@ -37,8 +37,12 @@ from models.kb_document import KBDocument
 from models.feedback import Feedback
 from models.lead import Lead
 from models.audit_log import AuditLog
+from models.student_query_log import StudentQueryLog
+from models.platform_complaint import PlatformComplaint
 from services.auth_service import AuthService, validate_password
-from services.rate_limiter import login_limiter, registration_limiter
+from services.rate_limiter import login_limiter, registration_limiter, otp_limiter
+from services.otp_service import otp_service
+from services.email_service import send_otp_email, send_welcome_email
 from utils.structured_logger import log_event
 
 # Ensure data directory exists
@@ -862,73 +866,153 @@ def _show_login_page() -> None:
                 
     with login_tab2:
         st.markdown("<h4 style='margin-top:0;'>Create Student Account</h4>", unsafe_allow_html=True)
-        reg_name = st.text_input("Full Name", placeholder="e.g. Jane Student", key="reg_name")
-        reg_email = st.text_input("University Email Address", placeholder="e.g. jane@greenfield.edu", key="reg_email")
-        
-        # Select student's department/academic program
-        depts = uni.departments or ["General"]
-        reg_dept = st.selectbox("Department / Academic Program", options=depts, key="reg_dept")
-        
-        reg_password = st.text_input("Password", type="password", placeholder="Min 8 chars, at least 1 number", key="reg_password")
-        reg_password_confirm = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="reg_password_confirm")
-        
-        reg_privacy = st.checkbox("I have read and agree to the Privacy Policy", value=False, key="reg_privacy")
-        
-        if st.button("Register & Log In", key="btn_student_register", use_container_width=True):
-            errors = []
-            if not reg_name.strip():
-                errors.append("Full Name is required.")
-            if not reg_email.strip():
-                errors.append("Email Address is required.")
-            elif "@" not in reg_email or "." not in reg_email.split("@")[-1]:
-                errors.append("Invalid email address format.")
-            try:
-                validate_password(reg_password)
-            except ValueError as pw_err:
-                errors.append(str(pw_err))
-            if reg_password != reg_password_confirm:
-                errors.append("Passwords do not match.")
-            if not reg_privacy:
-                errors.append("You must agree to the Privacy Policy to register.")
-            
-            if errors:
-                for e in errors:
-                    st.error(str(e))
-            else:
-                # ── Rate limit check ──
-                allowed, retry_after = registration_limiter.record_attempt(reg_email)
+
+        student_step = st.session_state.get("student_reg_step", 1)
+
+        if student_step == 2:
+            student_email = st.session_state.get("student_reg_email", "")
+            st.info(
+                f"A 6-digit verification code has been sent to **{student_email}**.\n\n"
+                f"Please enter the code below to complete your student registration."
+            )
+
+            with st.form("student_otp_form"):
+                otp_val = st.text_input(
+                    "6-Digit Verification Code",
+                    max_chars=6,
+                    placeholder="123456",
+                    key="student_otp_val"
+                )
+                col_st1, col_st2 = st.columns([2, 1])
+                with col_st1:
+                    submit_st_otp = st.form_submit_button("Verify OTP & Log In", use_container_width=True)
+                with col_st2:
+                    resend_st_otp = st.form_submit_button("Resend Code", use_container_width=True)
+
+            if st.button("← Change Registration Info", key="btn_back_student_reg"):
+                st.session_state.student_reg_step = 1
+                st.rerun()
+
+            if resend_st_otp:
+                allowed, retry_after = otp_limiter.record_attempt(student_email)
                 if not allowed:
                     minutes_left = max(1, retry_after // 60)
                     st.error(
-                        f"Too many registration attempts. "
-                        f"Please try again in {minutes_left} minute{'s' if minutes_left != 1 else ''}."
+                        f"Too many OTP requests. Please wait {minutes_left} minute"
+                        f"{'s' if minutes_left != 1 else ''} before requesting another code."
                     )
                 else:
-                    try:
-                        auth = AuthService(db)
-                        # Pre-check: email already taken in this university?
-                        if auth.check_email_exists(uni.id, reg_email.strip()):
-                            st.error(
-                                "This email is already registered. "
-                                "Please sign in instead, or use a different email."
-                            )
-                        else:
+                    pending_payload = st.session_state.get("student_reg_data", {})
+                    new_otp = otp_service.generate_otp(student_email, pending_payload)
+                    sent, send_err = send_otp_email(student_email, new_otp, purpose="student_registration")
+                    if sent:
+                        st.success("A new verification code has been sent to your email.")
+                    else:
+                        st.error(f"Failed to resend verification email: {send_err}")
+
+            if submit_st_otp:
+                if not otp_val or len(otp_val.strip()) != 6:
+                    st.error("Please enter a valid 6-digit numeric verification code.")
+                else:
+                    ok, msg, payload = otp_service.verify_otp(student_email, otp_val)
+                    if not ok:
+                        st.error(msg)
+                    else:
+                        try:
+                            auth = AuthService(db)
                             new_user = auth.register_user(
                                 university_id=uni.id,
-                                name=reg_name.strip(),
-                                email=reg_email.strip(),
-                                password=reg_password,
+                                name=payload["name"],
+                                email=payload["email"],
+                                password=payload["password"],
                                 role=UserRole.student,
-                                department=reg_dept,
+                                department=payload["department"],
                                 privacy_consent_given=True,
                             )
-                            registration_limiter.reset(reg_email)  # Clear limit on success
+                            registration_limiter.reset(student_email)
+                            otp_limiter.reset(student_email)
+
+                            send_welcome_email(payload["email"], payload["name"], role="student")
+
                             st.session_state.university = uni
                             st.session_state.user = new_user
-                            st.success("Account created successfully. Logging you in...")
+
+                            st.session_state.pop("student_reg_step", None)
+                            st.session_state.pop("student_reg_email", None)
+                            st.session_state.pop("student_reg_data", None)
+
+                            st.success("🎉 Account verified & created successfully! Logging you in...")
                             st.rerun()
-                    except Exception:
-                        st.error("Something went wrong creating your account. Please try again.")
+                        except Exception as ex:
+                            st.error(f"Something went wrong creating your account: {ex}")
+
+        else:
+            reg_name = st.text_input("Full Name", placeholder="e.g. Jane Student", key="reg_name")
+            reg_email = st.text_input("University Email Address", placeholder="e.g. jane@greenfield.edu", key="reg_email")
+
+            # Select student's department/academic program
+            depts = uni.departments or ["General"]
+            reg_dept = st.selectbox("Department / Academic Program", options=depts, key="reg_dept")
+
+            reg_password = st.text_input("Password", type="password", placeholder="Min 8 chars, at least 1 number", key="reg_password")
+            reg_password_confirm = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="reg_password_confirm")
+
+            reg_privacy = st.checkbox("I have read and agree to the Privacy Policy", value=False, key="reg_privacy")
+
+            if st.button("Send Verification Code", key="btn_student_register", use_container_width=True):
+                errors = []
+                if not reg_name.strip():
+                    errors.append("Full Name is required.")
+                if not reg_email.strip():
+                    errors.append("Email Address is required.")
+                elif "@" not in reg_email or "." not in reg_email.split("@")[-1]:
+                    errors.append("Invalid email address format.")
+                try:
+                    validate_password(reg_password)
+                except ValueError as pw_err:
+                    errors.append(str(pw_err))
+                if reg_password != reg_password_confirm:
+                    errors.append("Passwords do not match.")
+                if not reg_privacy:
+                    errors.append("You must agree to the Privacy Policy to register.")
+
+                if errors:
+                    for e in errors:
+                        st.error(str(e))
+                else:
+                    auth = AuthService(db)
+                    # Pre-check: email already taken in this university?
+                    if auth.check_email_exists(uni.id, reg_email.strip()):
+                        st.error(
+                            "This email is already registered. "
+                            "Please sign in instead, or use a different email."
+                        )
+                    else:
+                        allowed, retry_after = otp_limiter.record_attempt(reg_email.strip())
+                        if not allowed:
+                            minutes_left = max(1, retry_after // 60)
+                            st.error(
+                                f"Too many verification requests. "
+                                f"Please try again in {minutes_left} minute{'s' if minutes_left != 1 else ''}."
+                            )
+                        else:
+                            pending_payload = {
+                                "name": reg_name.strip(),
+                                "email": reg_email.strip(),
+                                "password": reg_password,
+                                "department": reg_dept,
+                            }
+                            otp_code = otp_service.generate_otp(reg_email.strip(), pending_payload)
+                            sent, send_err = send_otp_email(reg_email.strip(), otp_code, purpose="student_registration")
+
+                            if not sent:
+                                otp_service.clear(reg_email.strip())
+                                st.error(f"Failed to send verification email: {send_err}")
+                            else:
+                                st.session_state.student_reg_step = 2
+                                st.session_state.student_reg_email = reg_email.strip()
+                                st.session_state.student_reg_data = pending_payload
+                                st.rerun()
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1142,6 +1226,58 @@ if st.session_state.user is not None:
             f"</div>",
             unsafe_allow_html=True,
         )
+
+    # ── Support / Raise Complaint Popover for Admin & Super Admin ─────────────
+    if user.role in (UserRole.admin, UserRole.super_admin):
+        with st.sidebar.popover("⚙ Support / Report Issue", use_container_width=True):
+            st.markdown("#### Raise a Complaint")
+            st.caption("Report an issue directly to platform engineering.")
+            with st.form("sidebar_complaint_form", clear_on_submit=True):
+                comp_subject = st.text_input("Subject", placeholder="e.g. System bug, page error", key="sidebar_comp_sub")
+                comp_msg = st.text_area("Message / Details", placeholder="Describe the issue...", key="sidebar_comp_msg")
+                submitted_comp = st.form_submit_button("Submit Complaint", use_container_width=True)
+
+            if submitted_comp:
+                if not comp_subject.strip() or not comp_msg.strip():
+                    st.error("Please provide both subject and details.")
+                else:
+                    try:
+                        from models.platform_complaint import PlatformComplaint, ComplaintStatus
+                        from services.email_service import send_complaint_notification_email
+                        import os
+
+                        uni_id = uni.id if uni else None
+                        uni_name = uni.name if uni else "System Console"
+
+                        new_complaint = PlatformComplaint(
+                            university_id=uni_id,
+                            raised_by_user_id=user.id,
+                            subject=comp_subject.strip(),
+                            message=comp_msg.strip(),
+                            status=ComplaintStatus.open,
+                        )
+                        st.session_state.db.add(new_complaint)
+                        st.session_state.db.commit()
+
+                        # Dispatch notification to platform owner email
+                        owner_email = os.getenv("PLATFORM_OWNER_EMAIL") or os.getenv("BREVO_SENDER_EMAIL") or "admin@uqms.edu"
+                        send_complaint_notification_email(
+                            to_email=owner_email,
+                            submitted_by_name=user.name,
+                            submitted_by_email=user.email,
+                            university_name=uni_name,
+                            subject_text=comp_subject.strip(),
+                            message_text=comp_msg.strip(),
+                        )
+
+                        st.toast("Complaint submitted! Our team will get back to you soon.")
+                        st.success("Complaint submitted! Our support team will get back to you soon.")
+                    except Exception as e:
+                        st.session_state.db.rollback()
+                        st.error(f"Failed to submit complaint: {e}")
+
+        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+
     if st.sidebar.button("Sign Out", key="sidebar_sign_out", use_container_width=True):
         # Clear session state keys except db
         for key in list(st.session_state.keys()):

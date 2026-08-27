@@ -137,17 +137,38 @@ class KBService:
         """
         collection = self._get_collection()
 
-        # Auto-healing: Rebuild Chroma vector index on-the-fly if wiped by container restart
-        try:
-            if collection.count() == 0:
+        # Auto-healing: Rebuild Chroma vector index on-the-fly if wiped or out of sync
+        # Uses a module-level cache so the expensive check runs at most once per university per session.
+        from services.rag_chat import _healed_universities
+        uni_id = self.university.id
+        if uni_id not in _healed_universities:
+            try:
                 db_docs_count = self.db.query(KBDocument).filter(
-                    KBDocument.university_id == self.university.id
+                    KBDocument.university_id == uni_id
                 ).count()
-                if db_docs_count > 0:
-                    log.info("Chroma collection is empty but database contains %d documents. Reindexing...", db_docs_count)
+                chroma_count = collection.count()
+
+                needs_reindex = False
+                if db_docs_count > 0 and chroma_count == 0:
+                    needs_reindex = True
+                elif db_docs_count > 0 and chroma_count > 0:
+                    res = collection.get(include=["metadatas"])
+                    indexed_doc_ids = set(
+                        m["doc_id"] for m in res.get("metadatas", []) if m and "doc_id" in m
+                    )
+                    if len(indexed_doc_ids) < db_docs_count:
+                        needs_reindex = True
+
+                if needs_reindex:
+                    log.info(
+                        "Chroma collection out of sync with DB (university %d). Reindexing...",
+                        uni_id,
+                    )
                     self.reindex_all()
-        except Exception as e_reindex:
-            log.warning("Auto-healing Chroma check failed: %s", e_reindex)
+
+                _healed_universities.add(uni_id)
+            except Exception as e_reindex:
+                log.warning("Auto-healing Chroma check failed: %s", e_reindex)
 
         try:
             results = collection.query(

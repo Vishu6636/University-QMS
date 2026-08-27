@@ -42,6 +42,7 @@ from models.ticket import Ticket, TicketPriority, TicketStatus
 from services.auth_service import AuthService, DuplicateEmailError
 from services.ticket_service import TicketService
 from services.ingestion import ingest_to_vectorstore, retrieve
+from models.student_query_log import StudentQueryLog
 
 def run_tests():
     print("[START] Initializing Multi-Tenant Isolation Test Suite...")
@@ -225,6 +226,59 @@ def run_tests():
         assert all(r["university_id"] == uni_beta.id for r in results_beta)
         assert "Chemistry" in results_beta[0]["text"]
         print("   [PASS] Beta RAG retrieval only returned Beta document chunks.")
+
+        # 8. Test StudentQueryLog Isolation
+        print("[TEST] Testing StudentQueryLog isolation...")
+
+        # Insert logs for both universities
+        log_alpha = StudentQueryLog(
+            university_id=uni_alpha.id,
+            student_id=student_alpha.id,
+            query_text="What is the CS exam schedule?",
+            category="exams",
+        )
+        log_beta = StudentQueryLog(
+            university_id=uni_beta.id,
+            student_id=student_beta.id,
+            query_text="How do I book a hostel room?",
+            category="hostel",
+        )
+        db.add_all([log_alpha, log_beta])
+        db.commit()
+
+        # Test Case 8.1: Query by Alpha university_id returns only Alpha logs
+        alpha_logs = db.query(StudentQueryLog).filter(
+            StudentQueryLog.university_id == uni_alpha.id
+        ).all()
+        assert len(alpha_logs) == 1
+        assert alpha_logs[0].category == "exams"
+        assert alpha_logs[0].university_id == uni_alpha.id
+        print("   [PASS] Alpha query log query returned only Alpha logs.")
+
+        # Test Case 8.2: Query by Beta university_id returns only Beta logs
+        beta_logs = db.query(StudentQueryLog).filter(
+            StudentQueryLog.university_id == uni_beta.id
+        ).all()
+        assert len(beta_logs) == 1
+        assert beta_logs[0].category == "hostel"
+        assert beta_logs[0].university_id == uni_beta.id
+        print("   [PASS] Beta query log query returned only Beta logs.")
+
+        # Test Case 8.3: Deleting Alpha logs does not affect Beta logs
+        db.query(StudentQueryLog).filter(
+            StudentQueryLog.university_id == uni_alpha.id
+        ).delete(synchronize_session=False)
+        db.commit()
+
+        remaining_beta = db.query(StudentQueryLog).filter(
+            StudentQueryLog.university_id == uni_beta.id
+        ).count()
+        remaining_alpha = db.query(StudentQueryLog).filter(
+            StudentQueryLog.university_id == uni_alpha.id
+        ).count()
+        assert remaining_alpha == 0, "Alpha logs should be deleted"
+        assert remaining_beta == 1, "Beta logs should be untouched"
+        print("   [PASS] Deleting Alpha logs did not affect Beta logs.")
 
         print("\n[SUCCESS] ALL MULTI-TENANT ISOLATION TESTS PASSED SUCCESSFULLY! [OK]")
 

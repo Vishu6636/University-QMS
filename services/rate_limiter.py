@@ -114,3 +114,5 @@ class RateLimiter:
 login_limiter = RateLimiter(max_attempts=5, window_seconds=600)
 registration_limiter = RateLimiter(max_attempts=5, window_seconds=600)
 rag_query_limiter = RateLimiter(max_attempts=10, window_seconds=60)
+otp_limiter = RateLimiter(max_attempts=3, window_seconds=600)
+
