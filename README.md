@@ -1,129 +1,118 @@
-# University Query Management System (UQMS)
+# University Query Management System
 
-An AI-driven, multi-tenant academic support portal designed to streamline student query routing, auto-classify ticket priorities & intent taxonomy, verify user email via OTP, and provide an instant AI-powered RAG assistant based on ingested university guidelines, manuals, and FAQs.
+University QMS is a multi-tenant academic support portal built for universities and colleges. It gives students a single place to submit questions, track support tickets, and search institutional knowledge, while giving administrators practical tools for routing, analytics, and issue management.
 
-Designed with a premium, clean **Notion/Linear-style light aesthetic** and dynamic role-based page views.
+**Live application:** [Open University QMS](https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/)
 
----
+## Highlights
 
-## Live Demo
-[University Query Management System](https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/)
+- **Role-based workspaces** for platform administrators, institution administrators, and students.
+- **Tenant isolation** so each institution manages its own users, tickets, documents, and knowledge base.
+- **Secure account flows** with password hashing, session controls, rate limiting, and email OTP verification.
+- **Intelligent query handling** with intent classification, priority prediction, automatic department routing, and sentiment-aware triage.
+- **RAG knowledge assistant** that answers questions from institution-specific PDFs and text documents.
+- **Operational dashboards** for ticket lifecycle tracking, feedback, query trends, audits, leads, and platform complaints.
 
----
+## Technology
 
-## Key Features
+| Area | Tools |
+| --- | --- |
+| Application | Streamlit, Python |
+| Data | SQLAlchemy, SQLite or PostgreSQL |
+| AI search | ChromaDB, Sentence Transformers, Groq |
+| Machine learning | scikit-learn, XGBoost |
+| Email | Brevo API |
+| Analytics | Pandas, Plotly |
+| Monitoring | Sentry (optional) |
 
-* **Multi-Tenant Onboarding**: Register new universities dynamically with custom slugs and institutional departments (e.g., Admissions, Finance & Accounts, IT Support).
-* **OTP Email Verification**: Secure 2-step registration with Brevo REST API email verification for all student and admin signups.
-* **Dynamic Role Isolation**: Role-based navigation (`st.navigation`) strictly isolating super admins, institution admins, and students.
-* **RAG Knowledge Assistant**: Ingests PDF/TXT documents into localized **ChromaDB** vector stores scoped per tenant to answer student queries accurately.
-* **Student Question Logging & Taxonomy**: Auto-categorizes student questions in real-time using ML intent classification into fixed academic categories (Admissions, Fees, Exams, Hostel, Library, etc.) with 24h auto-cleanup and interactive category drill-down views.
-* **Automated Ticket Routing & Priority Prediction**: Auto-routes student support requests to relevant departments, scores sentiment, and predicts urgency using ML models.
-* **Platform Support & Complaints**: Direct support complaint channel from admins to super admin with automated email alerts and resolution tracking.
-* **Interactive Admin Analytics**: Admin-only dashboards featuring category breakdown charts, ticket resolution timelines, and student satisfaction ratings rendered via **Plotly**.
+## Project structure
 
----
+```text
+app/          Streamlit entry point, role-based pages, and visual assets
+models/       SQLAlchemy database models and packaged ML models
+services/     Authentication, tickets, email, AI, knowledge-base, and audit services
+scripts/      Database setup, data ingestion, training, evaluation, and verification tools
+data/         Local development data and the labelled training dataset
+reports/      Reproducible model-evaluation summaries
+utils/        Shared logging and timezone utilities
+```
 
-## Technology Stack
+## Run locally
 
-* **Frontend**: [Streamlit](https://streamlit.io/) (Dynamic routing, custom CSS injection, interactive layout)
-* **Database & ORM**: [SQLite](https://www.sqlite.org/) / [PostgreSQL](https://www.postgresql.org/) & [SQLAlchemy](https://www.sqlalchemy.org/)
-* **Vector Engine**: [ChromaDB](https://www.trychroma.com/) (Tenant-isolated vector database)
-* **Transactional Email**: [Brevo REST API](https://www.brevo.com/) (OTP & Notification delivery)
-* **Machine Learning**: Scikit-Learn (TF-IDF + Logistic Regression for intent & priority classification)
-* **Document Parsing**: PyPDF
-* **Analytics**: Plotly & Pandas
-* **Security**: Bcrypt (Password hashing)
+### 1. Create a virtual environment
 
----
-
-## Running Locally
-
-### 1. Prerequisites
-Ensure you have **Python 3.10+** installed.
-
-### 2. Setup Virtual Environment & Install Dependencies
 ```bash
-# Clone the repository
 git clone https://github.com/Vishu6636/University-QMS.git
 cd University-QMS
-
-# Create and activate virtual environment
 python -m venv .venv
-# On Windows PowerShell:
-.venv\Scripts\Activate.ps1
-# On macOS/Linux:
-source .venv/bin/activate
+```
 
-# Install required packages
+Activate it:
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+```bash
+# macOS/Linux
+source .venv/bin/activate
+```
+
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Initialize and Seed the Database
-Reset and seed the database with mock universities, users, tickets, and KB documents:
+### 3. Configure environment variables
+
+Copy the template, then add your service credentials:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `GROQ_API_KEY` | For AI answers | Groq API key for the RAG assistant |
+| `BREVO_API_KEY` | For email | Brevo API key for OTP and notification email |
+| `BREVO_SENDER_EMAIL` | For email | Verified Brevo sender address |
+| `PLATFORM_OWNER_EMAIL` | For complaints | Recipient for platform complaint alerts |
+| `DATABASE_URL` | No | Defaults to local SQLite |
+| `CHROMA_PATH` | No | Defaults to `./data/chroma` |
+| `SENTRY_DSN` | No | Sentry error-monitoring endpoint |
+
+### 4. Initialise local data and start the app
+
 ```bash
 python scripts/db_init.py --drop --seed
-```
-
-### 4. Run the Streamlit Application
-```bash
 streamlit run app/main.py
 ```
-Open `http://localhost:8501` in your browser.
 
----
+Then open `http://localhost:8501`.
 
-## Configuration & Environment Variables
+## Deployment
 
-Create a `.env` file in the root directory:
+The repository includes both a `Dockerfile` and a `Procfile`.
 
-| Environment Variable | Purpose |
-|----------------------|---------|
-| `GROQ_API_KEY` | Groq API access token for RAG chat responses |
-| `BREVO_API_KEY` | Brevo API key for OTP and notification emails |
-| `BREVO_SENDER_EMAIL` | Verified sender email address in Brevo |
-| `PLATFORM_OWNER_EMAIL` | Platform owner recipient email for platform complaints |
-| `DATABASE_URL` | SQLAlchemy connection string (`sqlite:///./data/university_qms.db` or PostgreSQL) |
-| `CHROMA_PATH` | Persistent storage directory for ChromaDB collections (`./data/chroma`) |
-| `SENTRY_DSN` | *(Optional)* Sentry DSN endpoint for real-time error monitoring |
-
----
-
-## Project Architecture
-
-```text
-University-QMS/
-├── app/                         # Presentation layer
-│   ├── main.py                  # App Entry Point & Dynamic Navigation
-│   └── pages/                   # Role-Based Page Views
-│       ├── onboarding.py        # Institutional Onboarding & OTP
-│       ├── admin_dashboard.py   # Admin Analytics, Leads & Question Logs
-│       ├── super_admin_dashboard.py # Super Admin Console & Complaints
-│       ├── student_dashboard.py # Student Tickets & Feedback Submission
-│       ├── document_upload.py   # KB Document Ingestion Dashboard
-│       ├── rag_chat_page.py     # RAG AI Chatbot Interface
-│       ├── admin_assistant_page.py # Admin AI Assistant
-│       ├── public_inquiry.py    # Public Lead Generator / Inquiry Form
-│       └── 99_Privacy_Policy.py # Privacy Policy Page
-├── models/                      # SQLAlchemy Database Models
-│   ├── university.py
-│   ├── user.py
-│   ├── ticket.py
-│   ├── student_query_log.py
-│   ├── platform_complaint.py
-│   └── audit_log.py
-├── services/                    # Core Business & ML Services
-│   ├── auth_service.py          # Authentication & user management
-│   ├── otp_service.py           # OTP generation & validation
-│   ├── email_service.py         # Brevo email REST API client
-│   ├── intent_classifier.py     # TF-IDF intent prediction
-│   ├── rag_chat.py              # RAG orchestration & query categorization
-│   ├── kb_service.py            # Text parsing & DB persistence
-│   └── vectorstore_service.py   # ChromaDB vector embedding & retrieval
-├── scripts/                     # Seed, test, and evaluation scripts
-│   ├── test_tenant_isolation.py # Multi-tenant isolation test suite
-│   ├── test_otp_and_email.py    # OTP & Email test suite
-│   └── test_platform_complaint.py # Platform complaints test suite
-├── reports/                     # ML Evaluation outputs & reports
-└── data/                        # Local SQLite & ChromaDB storage
+```bash
+docker build -t university-qms .
+docker run --env-file .env -p 8501:8501 university-qms
 ```
+
+For a hosted environment, set the variables from `.env.example` in the platform's secret manager. Do not commit `.env`, databases, Chroma collections, or API keys.
+
+## Development utilities
+
+The `scripts/` directory contains small, focused tools for common maintenance tasks:
+
+- `db_init.py` — initialise or seed the database.
+- `ingest_faqs.py` — ingest knowledge-base content.
+- `train_intent_classifier.py` and `train_priority_model.py` — rebuild packaged ML models.
+- `run_evaluation.py` — regenerate evaluation reports.
+- `test_*.py` — verify tenant isolation, ticket lifecycle, email/OTP handling, RAG chat, and platform complaints.
+
+## Privacy and security
+
+Passwords are stored using bcrypt hashes. Configuration secrets are supplied through environment variables and excluded from version control. See [the privacy policy](UQMS_Privacy_Policy.md) for the application’s privacy statement.
