@@ -88,8 +88,12 @@ def run_tests():
         # Note: sent may be True or False depending on Brevo key, but function must run without crashing.
         print(f"   [PASS] Notification function executed without error (Sent: {sent}, Message: {msg!r}).")
 
-        # Clean up test complaint
+        # Clean up test complaint, admin, and test university so DB remains pristine
         db.delete(complaint)
+        if admin:
+            db.delete(admin)
+        if uni:
+            db.delete(uni)
         db.commit()
 
         print("\n[SUCCESS] ALL PLATFORM COMPLAINT TESTS PASSED SUCCESSFULLY! [OK]")
