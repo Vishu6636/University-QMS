@@ -13,18 +13,6 @@ University QMS is a multi-tenant academic support portal built for universities 
 - **RAG knowledge assistant** that answers questions from institution-specific PDFs and text documents.
 - **Operational dashboards** for ticket lifecycle tracking, feedback, query trends, audits, leads, and platform complaints.
 
-## Technology
-
-| Area | Tools |
-| --- | --- |
-| Application | Streamlit, Python |
-| Data | SQLAlchemy, SQLite or PostgreSQL |
-| AI search | ChromaDB, Sentence Transformers, Groq |
-| Machine learning | scikit-learn, XGBoost |
-| Email | Brevo API |
-| Analytics | Pandas, Plotly |
-| Monitoring | Sentry (optional) |
-
 ## Project structure
 
 ```text
