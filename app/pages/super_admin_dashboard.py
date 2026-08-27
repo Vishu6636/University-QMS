@@ -26,11 +26,12 @@ def render(db: Session, current_user: User) -> None:
         unsafe_allow_html=True,
     )
 
-    tab_pending, tab_all, tab_add_admin, tab_analytics, tab_settings, tab_audit = st.tabs([
+    tab_pending, tab_all, tab_add_admin, tab_analytics, tab_complaints, tab_settings, tab_audit = st.tabs([
         "Pending Requests",
         "All Institutions",
         "Add Admin",
         "Platform Analytics",
+        "Platform Complaints",
         "Console Settings",
         "Audit Log",
     ])
@@ -459,7 +460,93 @@ def render(db: Session, current_user: User) -> None:
             st.markdown("<h3>Institutional Health & Usage Overview</h3>", unsafe_allow_html=True)
             st.dataframe(df, use_container_width=True, hide_index=True)
 
-    # ── TAB 5: CONSOLE SETTINGS ───────────────────────────────────────────────
+    # ── TAB 5: PLATFORM COMPLAINTS ────────────────────────────────────────────
+    with tab_complaints:
+        st.markdown("<h3>Platform Complaints</h3>", unsafe_allow_html=True)
+        st.markdown(
+            "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
+            "Cross-tenant issues and bug reports raised by institution admins."
+            "</p>",
+            unsafe_allow_html=True,
+        )
+
+        from models.platform_complaint import PlatformComplaint, ComplaintStatus
+        from models.user import User as UserModel
+        from datetime import datetime, timezone
+
+        comp_status_filter = st.selectbox(
+            "Filter by Complaint Status",
+            options=["All", "Open", "In Progress", "Resolved"],
+            index=0,
+            key="comp_status_filter",
+        )
+
+        comp_query = db.query(PlatformComplaint)
+        if comp_status_filter != "All":
+            comp_query = comp_query.filter(PlatformComplaint.status == comp_status_filter.lower().replace(" ", "_"))
+
+        complaints = comp_query.order_by(PlatformComplaint.created_at.desc()).all()
+
+        if not complaints:
+            st.info(f"No platform complaints found{' matching status ' + comp_status_filter if comp_status_filter != 'All' else ''}.")
+        else:
+            for comp in complaints:
+                uni_name = comp.university.name if comp.university else "System Console"
+                raiser = db.query(UserModel).filter(UserModel.id == comp.raised_by_user_id).first()
+                raiser_name = raiser.name if raiser else "Unknown Admin"
+                raiser_email = raiser.email if raiser else "—"
+
+                if comp.status == ComplaintStatus.open:
+                    badge_style = "background-color: #FEF3C7; color: #D97706; border: 1px solid #FDE68A;"
+                elif comp.status == ComplaintStatus.in_progress:
+                    badge_style = "background-color: #DBEAFE; color: #2563EB; border: 1px solid #BFDBFE;"
+                else:
+                    badge_style = "background-color: #DCFCE7; color: #16A34A; border: 1px solid #BBF7D0;"
+
+                st.markdown(
+                    f"<div class='uqms-card'>"
+                    f"<div style='display:flex; justify-content:space-between; align-items:center;'>"
+                    f"<h4 style='margin:0; color:#18181B;'>{comp.subject}</h4>"
+                    f"<span class='badge' style='{badge_style}'>{comp.status.value.upper()}</span>"
+                    f"</div>"
+                    f"<p style='margin: 6px 0; font-size:13px; color:#6B6B6B;'>"
+                    f"<b>Institution:</b> {uni_name} &bull; <b>Raised By:</b> {raiser_name} ({raiser_email}) &bull; "
+                    f"<b>Date:</b> {to_ist(comp.created_at).strftime('%Y-%m-%d %H:%M')}"
+                    f"</p>"
+                    f"<p style='margin: 8px 0 0 0; font-size:14px; color:#27272A; white-space: pre-wrap;'>{comp.message}</p>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+                # Status update form
+                col_status, col_btn = st.columns([2, 1])
+                with col_status:
+                    selected_status = st.selectbox(
+                        "Update Status",
+                        options=[e.value for e in ComplaintStatus],
+                        index=[e.value for e in ComplaintStatus].index(comp.status.value),
+                        key=f"status_select_{comp.id}",
+                        format_func=lambda x: x.replace("_", " ").title(),
+                    )
+                with col_btn:
+                    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                    if st.button("Save Status", key=f"btn_save_comp_status_{comp.id}", use_container_width=True):
+                        try:
+                            comp.status = ComplaintStatus(selected_status)
+                            if selected_status == "resolved":
+                                comp.resolved_at = datetime.now(timezone.utc)
+                            else:
+                                comp.resolved_at = None
+                            db.commit()
+                            st.success(f"Updated complaint #{comp.id} status to '{selected_status.replace('_', ' ').title()}'.")
+                            st.rerun()
+                        except Exception as ex:
+                            db.rollback()
+                            st.error(f"Failed to update status: {ex}")
+
+                st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+
+    # ── TAB 6: CONSOLE SETTINGS ───────────────────────────────────────────────
     with tab_settings:
         st.markdown("<h3>Console Settings</h3>", unsafe_allow_html=True)
         st.markdown(

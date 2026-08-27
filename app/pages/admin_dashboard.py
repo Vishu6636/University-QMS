@@ -24,6 +24,7 @@ from models.feedback import Feedback
 from models.kb_document import DocType, KBDocument
 from models.lead import Lead
 from models.audit_log import AuditLog
+from models.student_query_log import StudentQueryLog
 from services.ticket_service import TicketService
 from services.kb_service import KBService
 from services.audit_service import AuditService
@@ -32,6 +33,19 @@ from utils.timezone import to_ist
 
 def render(db: Session, university: University, user: User) -> None:
     """Main admin portal layout with tabs."""
+
+    # ── 24-hour auto-cleanup of student query logs ────────────────────────────
+    from datetime import datetime, timezone, timedelta
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        db.query(StudentQueryLog).filter(
+            StudentQueryLog.university_id == university.id,
+            StudentQueryLog.created_at < cutoff,
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception:
+        db.rollback()
+
     st.markdown(f"<h2>Admin Portal &mdash; {university.name}</h2>", unsafe_allow_html=True)
     st.markdown(
         f"<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
@@ -44,13 +58,20 @@ def render(db: Session, university: University, user: User) -> None:
     lead_count = db.query(Lead).filter(Lead.university_id == university.id).count()
     leads_label = f"Admissions Leads ({lead_count})" if lead_count > 0 else "Admissions Leads"
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    # Count student questions for tab label badge
+    sq_count = db.query(StudentQueryLog).filter(
+        StudentQueryLog.university_id == university.id
+    ).count()
+    sq_label = f"Student Questions ({sq_count})" if sq_count > 0 else "Student Questions"
+
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "Dashboard Overview",
         "Ticket Management",
         "Analytics & Insights",
         "Portal Settings",
         "Knowledge Base",
         leads_label,
+        sq_label,
         "Audit Log",
     ])
 
@@ -73,6 +94,9 @@ def render(db: Session, university: University, user: User) -> None:
         render_leads(db, university, user)
 
     with tab7:
+        render_student_questions(db, university, user)
+
+    with tab8:
         render_audit(db, university, user)
 
 
@@ -993,6 +1017,212 @@ def render_leads(db: Session, university: University, user: User) -> None:
             "Date": st.column_config.TextColumn("Submitted", width="medium"),
         },
     )
+
+
+def render_student_questions(db: Session, university: University, user: User) -> None:
+    """Page: Student Questions — see what students have been asking the RAG chat."""
+    scoped_uni = db.query(University).filter(University.id == university.id).first()
+    if not scoped_uni:
+        st.error("Access denied: Invalid tenant context.")
+        return
+
+    st.markdown("<h3>Student Questions</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
+        "Questions students have asked the RAG Chat in the last 24 hours, auto-classified by category."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    # Fetch all logs for this university (already cleaned of >24h rows in render())
+    logs = (
+        db.query(StudentQueryLog)
+        .filter(StudentQueryLog.university_id == scoped_uni.id)
+        .order_by(StudentQueryLog.created_at.desc())
+        .all()
+    )
+
+    # KPI: Total questions
+    st.markdown(
+        f"<div class='uqms-card kpi' style='max-width:200px;'>"
+        f"<div class='value' style='color:#4F46E5;'>{len(logs)}</div>"
+        f"<div class='label'>Questions (24h)</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    if not logs:
+        st.markdown(
+            "<div style='padding: 2rem; border: 1px dashed #E5E5E5; border-radius: 8px; text-align: center; color: #6B6B6B;'>"
+            "No student questions recorded in the last 24 hours."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+
+        # Category breakdown chart
+        st.markdown("<h4>Category Breakdown</h4>", unsafe_allow_html=True)
+        from collections import Counter
+        cat_counts = Counter(log.category for log in logs)
+        sorted_cats = sorted(cat_counts.items(), key=lambda x: x[1])
+
+        try:
+            import plotly.graph_objects as go
+            fig = go.Figure(
+                go.Bar(
+                    x=[item[1] for item in sorted_cats],
+                    y=[item[0].replace('_', ' ').title() for item in sorted_cats],
+                    orientation="h",
+                    marker_color="#4F46E5",
+                    text=[item[1] for item in sorted_cats],
+                    textposition="outside",
+                )
+            )
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font_color="#1A1A1A",
+                xaxis=dict(title="Count", gridcolor="rgba(0,0,0,0.05)"),
+                yaxis=dict(gridcolor="rgba(0,0,0,0.05)"),
+                height=max(200, len(sorted_cats) * 40 + 60),
+                margin=dict(t=20, b=20, l=20, r=20),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        except ImportError:
+            # Fallback: simple text list
+            for cat, count in sorted_cats:
+                st.write(f"- **{cat.replace('_', ' ').title()}**: {count}")
+
+        st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+
+        # Category Drill-Down Section
+        st.markdown("<h4>Category Drill-Down & Management</h4>", unsafe_allow_html=True)
+        from models.user import User as UserModel
+
+        # Sort categories descending by count for expanders
+        desc_cats = sorted(cat_counts.items(), key=lambda x: x[1], reverse=True)
+
+        for cat_name, count in desc_cats:
+            cat_title = cat_name.replace("_", " ").title()
+            with st.expander(f"📁 {cat_title} ({count} question{'s' if count != 1 else ''})", expanded=False):
+                cat_logs = [log for log in logs if log.category == cat_name]
+                cat_data = []
+                for log_entry in cat_logs:
+                    student = db.query(UserModel).filter(UserModel.id == log_entry.student_id).first() if log_entry.student_id else None
+                    student_name = student.name if student else "Anonymous"
+                    cat_data.append({
+                        "Student": student_name,
+                        "Question": log_entry.query_text,
+                        "Time": to_ist(log_entry.created_at).strftime("%I:%M %p") if log_entry.created_at else "—",
+                    })
+
+                st.dataframe(
+                    pd.DataFrame(cat_data),
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Student": st.column_config.TextColumn("Student", width="small"),
+                        "Question": st.column_config.TextColumn("Question", width="large"),
+                        "Time": st.column_config.TextColumn("Time", width="small"),
+                    },
+                )
+
+                # Clear single category button & confirmation
+                cat_confirm_key = f"confirm_clear_cat_{cat_name}"
+                if st.session_state.get(cat_confirm_key):
+                    st.warning(f"Are you sure you want to clear all **{cat_title}** questions?")
+                    c_col1, c_col2 = st.columns(2)
+                    with c_col1:
+                        if st.button(f"Yes, Clear {cat_title}", key=f"btn_confirm_del_{cat_name}", use_container_width=True):
+                            deleted = db.query(StudentQueryLog).filter(
+                                StudentQueryLog.university_id == scoped_uni.id,
+                                StudentQueryLog.category == cat_name,
+                            ).delete(synchronize_session=False)
+                            db.commit()
+                            AuditService.log(
+                                db,
+                                university_id=scoped_uni.id,
+                                actor_user_id=user.id,
+                                action="clear_category_student_query_log",
+                                target_type="category",
+                                target_id=0,
+                                details={"category": cat_name, "rows_deleted": deleted},
+                            )
+                            st.session_state.pop(cat_confirm_key, None)
+                            st.success(f"Cleared {deleted} question(s) from {cat_title}.")
+                            st.rerun()
+                    with c_col2:
+                        if st.button("Cancel", key=f"btn_cancel_del_{cat_name}", use_container_width=True):
+                            st.session_state.pop(cat_confirm_key, None)
+                            st.rerun()
+                else:
+                    if st.button(f"Clear {cat_title} Category", key=f"btn_del_cat_{cat_name}"):
+                        st.session_state[cat_confirm_key] = True
+                        st.rerun()
+
+        st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+
+        # Recent queries table (all categories)
+        st.markdown("<h4>All Recent Queries</h4>", unsafe_allow_html=True)
+        query_data = []
+        for log_entry in logs:
+            student = db.query(UserModel).filter(UserModel.id == log_entry.student_id).first() if log_entry.student_id else None
+            student_name = student.name if student else "Anonymous"
+            query_data.append({
+                "Student": student_name,
+                "Question": log_entry.query_text[:120] + ("..." if len(log_entry.query_text) > 120 else ""),
+                "Category": log_entry.category.replace("_", " ").title(),
+                "Time": to_ist(log_entry.created_at).strftime("%I:%M %p") if log_entry.created_at else "—",
+            })
+
+        st.dataframe(
+            pd.DataFrame(query_data),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Student": st.column_config.TextColumn("Student", width="small"),
+                "Question": st.column_config.TextColumn("Question", width="large"),
+                "Category": st.column_config.TextColumn("Category", width="small"),
+                "Time": st.column_config.TextColumn("Time", width="small"),
+            },
+        )
+
+    # Clear History button with confirmation
+    st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+    confirm_key = "confirm_clear_query_log"
+    if st.session_state.get(confirm_key):
+        st.warning(
+            "Are you sure you want to clear **all** student question logs for this university? "
+            "This action cannot be undone."
+        )
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("Yes, Clear All", key="btn_confirm_clear_query_log", use_container_width=True):
+                deleted = db.query(StudentQueryLog).filter(
+                    StudentQueryLog.university_id == scoped_uni.id
+                ).delete(synchronize_session=False)
+                db.commit()
+                AuditService.log(
+                    db,
+                    university_id=scoped_uni.id,
+                    actor_user_id=user.id,
+                    action="clear_student_query_log",
+                    target_type="university",
+                    target_id=scoped_uni.id,
+                    details={"rows_deleted": deleted},
+                )
+                st.session_state.pop(confirm_key, None)
+                st.success(f"Cleared {deleted} student question log(s).")
+                st.rerun()
+        with col_no:
+            if st.button("Cancel", key="btn_cancel_clear_query_log", use_container_width=True):
+                st.session_state.pop(confirm_key, None)
+                st.rerun()
+    else:
+        if st.button("Clear History", key="btn_clear_query_log", use_container_width=True):
+            st.session_state[confirm_key] = True
+            st.rerun()
 
 
 def render_audit(db: Session, university: University, user: User) -> None:

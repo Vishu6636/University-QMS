@@ -7,7 +7,12 @@ predict_intent(query_text) -> str
   Returns the predicted intent label for a student query.
 """
 
-import json, pathlib
+import json, pathlib, warnings
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    pass
 
 ROOT      = pathlib.Path(__file__).resolve().parent.parent
 BEST_JSON = ROOT / "models" / "intent" / "best_model.json"

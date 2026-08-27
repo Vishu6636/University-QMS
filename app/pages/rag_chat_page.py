@@ -9,11 +9,13 @@ from services.rag_chat import answer_query
 
 
 def render(uni, user) -> None:
-    st.markdown("<h2>Ask the Knowledge Base</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>RAG Chat</h2>", unsafe_allow_html=True)
     st.markdown(
         f"<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
-        f"Answers are generated from <b>{uni.name}</b>'s uploaded documents. "
-        f"Queries outside the knowledge base are automatically escalated to a support ticket."
+        f"Ask questions answered from <b>{uni.name}</b>'s uploaded knowledge base — "
+        f"FAQs, policies, circulars, and documents. "
+        f"Queries outside the knowledge base are automatically escalated to a support ticket.<br>"
+        f"<i>For operational data (tickets, students, feedback), use the <b>Admin Assistant</b> page.</i>"
         f"</p>",
         unsafe_allow_html=True,
     )
@@ -73,6 +75,24 @@ def render(uni, user) -> None:
                 "content": answer_text,
                 "escalate": result["escalate"],
             })
+
+            # Log student query for admin visibility (student role only, not admin)
+            try:
+                from models.user import UserRole
+                if user.role == UserRole.student:
+                    from services.rag_chat import classify_query_category
+                    from models.student_query_log import StudentQueryLog
+                    category = classify_query_category(query)
+                    log_entry = StudentQueryLog(
+                        university_id=uni.id,
+                        student_id=user.id,
+                        query_text=query,
+                        category=category,
+                    )
+                    st.session_state.db.add(log_entry)
+                    st.session_state.db.commit()
+            except Exception:
+                pass  # Never break chat for a logging failure
 
     # Clear chat button
     if history:

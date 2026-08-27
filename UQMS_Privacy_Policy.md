@@ -24,7 +24,7 @@ Depending on your role, we may collect:
 | Data Type | Collected From | Purpose |
 | :--- | :--- | :--- |
 | **Name** | Registered Users, Admins | Identify your queries and tickets |
-| **Email address** | Registered Users, Admins | Account access, ticket updates, notifications |
+| **Email address** | Registered Users, Admins | Account access, OTP identity verification, ticket updates, notifications |
 | **Student/Enrollment ID** (if applicable) | Registered Users | Verify affiliation with the university |
 | **Query/ticket content** | All users | Provide helpdesk responses via AI and human escalation |
 | **Login timestamps and session activity** | All users | Security, fraud prevention, session management |
@@ -38,6 +38,7 @@ We do not knowingly collect sensitive personal data such as financial informatio
 
 We use collected data only to:
 - Respond to your queries via the AI assistant or human staff
+- Verify account identity via One-Time Passwords (OTP) sent during registration
 - Route and prioritize support tickets
 - Maintain account security and prevent unauthorized access
 - Improve response accuracy (in aggregated, de-identified form where possible)
