@@ -11,6 +11,11 @@ Designed with a premium, clean **Notion/Linear-style light aesthetic** and dynam
 
 ---
 
+
+**OR**
+
+uqms66.up.railway.app
+
 ## Key Features
 
 * **Multi-Tenant Onboarding**: Register new universities dynamically with custom slugs and institutional departments (e.g., Admissions, Finance & Accounts, IT Support).
