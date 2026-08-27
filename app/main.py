@@ -774,7 +774,7 @@ def _show_login_page() -> None:
             f"<p style='color:#6B6B6B;'>Select any dashboard page in the sidebar navigation to continue.</p>",
             unsafe_allow_html=True
         )
-        if st.button("Sign Out", key="btn_login_logout", use_container_width=True):
+        if st.button("Log Out", key="btn_login_logout", use_container_width=True):
             for key in list(st.session_state.keys()):
                 if key != "db":
                     del st.session_state[key]
@@ -1278,7 +1278,7 @@ if st.session_state.user is not None:
 
         st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
-    if st.sidebar.button("Sign Out", key="sidebar_sign_out", use_container_width=True):
+    if st.sidebar.button("Log Out", key="sidebar_sign_out", use_container_width=True):
         # Clear session state keys except db
         for key in list(st.session_state.keys()):
             if key != "db":

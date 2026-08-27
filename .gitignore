@@ -26,6 +26,14 @@ desktop.ini
 
 # Streamlit secrets (keep config.toml if needed, ignore secrets.toml)
 .streamlit/secrets.toml
+.streamlit/credentials.toml
+
+# Test, coverage, and runtime output
+.pytest_cache/
+.coverage
+htmlcov/
+*.db-journal
+*.log
 
 # Heavy/inactive model weights
 models/intent/distilbert/
