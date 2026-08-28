@@ -607,6 +607,20 @@ div[data-baseweb="input"]:focus-within {
 # ── Session init ───────────────────────────────────────────────────────────────
 if "db" not in st.session_state:
     st.session_state.db = SessionLocal()
+
+# Defensive: recover a poisoned session on every rerun.
+# If a previous rerun left the session in a "needs rollback" state (e.g. an
+# unhandled commit failure), this proactively clears it so the current rerun
+# does not crash with PendingRollbackError.  No-op when the session is healthy.
+try:
+    from sqlalchemy import text as _sa_text
+    st.session_state.db.execute(_sa_text("SELECT 1"))
+except Exception:
+    try:
+        st.session_state.db.rollback()
+    except Exception:
+        # Session is truly broken — recreate it entirely
+        st.session_state.db = SessionLocal()
 if "university" not in st.session_state:
     st.session_state.university = None
 if "user" not in st.session_state:

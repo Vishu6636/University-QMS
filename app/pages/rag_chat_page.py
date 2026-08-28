@@ -92,6 +92,7 @@ def render(uni, user) -> None:
                     st.session_state.db.add(log_entry)
                     st.session_state.db.commit()
             except Exception:
+                st.session_state.db.rollback()  # Recover session so future queries aren't poisoned
                 pass  # Never break chat for a logging failure
 
     # Clear chat button
