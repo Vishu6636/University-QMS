@@ -68,8 +68,15 @@ class AuditService:
             target_id=target_id,
             details=details,
         )
-        db.add(entry)
-        db.commit()
+        try:
+            db.add(entry)
+            db.commit()
+        except Exception:
+            db.rollback()
+            log.warning(
+                "Failed to write audit log entry: action=%s target=%s:%s",
+                action, target_type, target_id, exc_info=True,
+            )
         log.info(
             "Audit: action=%s target=%s:%s actor=%s uni=%s",
             action, target_type, target_id, actor_user_id, university_id,

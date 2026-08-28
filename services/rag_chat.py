@@ -249,6 +249,12 @@ def answer_query(
                 f"**{ticket.department}** department with **{ticket.priority.value}** priority."
             )
         except Exception as e:
+            # Recover the session so subsequent queries on this session don't crash
+            if db is not None:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
             log.exception("Failed to auto-create escalation ticket: %s", e)
 
     return {
