@@ -7,6 +7,9 @@ Redesigned with SaaS-grade aesthetics (Notion/Linear style) and modern st.naviga
 import sys
 import os
 import base64
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Force pure-python protobuf implementation to prevent opentelemetry/chromadb TypeError conflicts on deployment
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"

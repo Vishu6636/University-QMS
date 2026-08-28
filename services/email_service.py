@@ -11,6 +11,9 @@ import os
 import logging
 import requests
 from typing import Tuple
+from dotenv import load_dotenv
+
+load_dotenv()
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +24,10 @@ PRIMARY_COLOR = "#4F46E5"
 def _get_brevo_config() -> Tuple[str | None, str | None]:
     api_key = os.getenv("BREVO_API_KEY")
     sender_email = os.getenv("BREVO_SENDER_EMAIL")
+    if not api_key or not sender_email:
+        load_dotenv()
+        api_key = os.getenv("BREVO_API_KEY")
+        sender_email = os.getenv("BREVO_SENDER_EMAIL")
     return api_key, sender_email
 
 
