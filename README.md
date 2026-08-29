@@ -4,6 +4,10 @@ University QMS is a multi-tenant academic support portal built for universities 
 
 **Live application:** [Open University QMS](https://university-qms-ep9ufqrnvi7g3qo6yeztr3.streamlit.app/)
 
+or
+
+**LIVE** on **AWS** https://uqms-portal.duckdns.org 
+
 ## Highlights
 
 - **Role-based workspaces** for platform administrators, institution administrators, and students.
