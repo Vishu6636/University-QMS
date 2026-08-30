@@ -52,7 +52,7 @@ def render(uni, user) -> None:
             # Get answer
             with st.chat_message("assistant"):
                 with st.spinner("Searching knowledge base…"):
-                    result = answer_query(uni.id, query, db=st.session_state.db, student_id=user.id)
+                    result = answer_query(uni.id, query, db=st.session_state.db, student_id=user.id, chat_history=history)
 
                 answer_text = result["answer"]
 
