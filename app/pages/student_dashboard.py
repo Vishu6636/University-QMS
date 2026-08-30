@@ -19,15 +19,16 @@ def render(db: Session, university: University, user: User) -> None:
     st.markdown(f"<h2>Student Portal &mdash; {university.name}</h2>", unsafe_allow_html=True)
     st.markdown(
         f"<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
-        f"Manage your support requests and feedback."
+        f"Manage your support requests, feedback, and account settings."
         f"</p>",
         unsafe_allow_html=True,
     )
 
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
         "My Support Tickets",
         "Submit New Ticket",
-        "Give Feedback"
+        "Give Feedback",
+        "Account Settings",
     ])
 
     with tab1:
@@ -38,6 +39,9 @@ def render(db: Session, university: University, user: User) -> None:
 
     with tab3:
         render_feedback(db, university, user)
+
+    with tab4:
+        render_account_settings(db, university, user)
 
 
 def render_my_tickets(db: Session, university: University, user: User) -> None:
@@ -120,6 +124,257 @@ def render_my_tickets(db: Session, university: University, user: User) -> None:
             f"</div>",
             unsafe_allow_html=True,
         )
+
+        # Two-step ticket deletion controls for student
+        confirm_key = f"confirm_del_student_ticket_{t.id}"
+        if st.session_state.get(confirm_key):
+            st.warning(f"Are you sure you want to delete Ticket #{t.id}? This action will record an audit entry and cannot be undone.")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Yes, Confirm Delete Ticket", key=f"btn_yes_del_t_{t.id}", use_container_width=True):
+                    try:
+                        svc.delete_ticket_by_student(t.id, user.id)
+                        st.session_state.pop(confirm_key, None)
+                        st.success(f"Ticket #{t.id} successfully deleted.")
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(f"Error deleting ticket: {ex}")
+            with c2:
+                if st.button("Cancel", key=f"btn_no_del_t_{t.id}", use_container_width=True):
+                    st.session_state.pop(confirm_key, None)
+                    st.rerun()
+        else:
+            if st.button(f"Delete Ticket #{t.id}", key=f"btn_del_t_{t.id}"):
+                st.session_state[confirm_key] = True
+                st.rerun()
+
+
+def render_submit_ticket(db: Session, university: University, user: User) -> None:
+    """Submit ticket form with modern input styling and validation."""
+    kb_check_key = f"kb_check_{user.id}"
+    show_form_key = f"show_form_{user.id}"
+    form_reset_key = f"form_reset_{user.id}"
+    
+    # Initialize session states
+    if kb_check_key not in st.session_state:
+        st.session_state[kb_check_key] = None
+    if show_form_key not in st.session_state:
+        st.session_state[show_form_key] = False
+    if form_reset_key not in st.session_state:
+        st.session_state[form_reset_key] = 0
+
+    # Step 1: Input title and description outside st.form so we can use buttons/reruns
+    st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
+    st.write("#### Tell us about your query")
+    
+    counter = st.session_state[form_reset_key]
+    title_key = f"input_title_{user.id}_{counter}"
+    desc_key = f"input_desc_{user.id}_{counter}"
+    
+    title = st.text_input("Ticket Title", placeholder="e.g. Cannot access library portal", max_chars=200, key=title_key)
+    description = st.text_area(
+        "Detailed Description",
+        placeholder="Please describe your query or problem in detail. This description is analyzed to predict priority and department.",
+        height=150,
+        key=desc_key
+    )
+    
+    # Check KB button
+    if st.button("Check Knowledge Base First", use_container_width=True):
+        if not title.strip() or not description.strip():
+            st.error("Please fill in both the title and description fields.")
+        else:
+            with st.spinner("Checking knowledge base..."):
+                from services.rag_chat import answer_query
+                result = answer_query(university.id, description.strip(), db=db, student_id=None)
+                st.session_state[kb_check_key] = result
+                # If AI can't answer (escalates), then we skip confirmation and show form
+                if result["escalate"]:
+                    st.session_state[show_form_key] = True
+                else:
+                    st.session_state[show_form_key] = False
+            st.rerun()
+            
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    kb_result = st.session_state[kb_check_key]
+    show_ticket_form = st.session_state[show_form_key]
+
+    # Step 2: Confirmation Gate
+    if kb_result is not None and not kb_result["escalate"] and not show_ticket_form:
+        st.markdown(
+            f"<div class='uqms-card' style='border-color: #C7D2FE; background-color: #EEF2FF;'>",
+            unsafe_allow_html=True
+        )
+        st.write("#### 🤖 Potential Answer Found in Knowledge Base")
+        st.markdown(kb_result["answer"])
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("This solves it, no ticket needed", use_container_width=True):
+                # Clear all inputs and state
+                st.session_state[kb_check_key] = None
+                st.session_state[show_form_key] = False
+                st.session_state[form_reset_key] += 1
+                st.success("Great! Glad we could help resolve your query.")
+                st.rerun()
+        with col2:
+            if st.button("Still raise a ticket", use_container_width=True):
+                st.session_state[show_form_key] = True
+                st.rerun()
+                
+    # If we need to show the ticket form
+    elif show_ticket_form or (kb_result is not None and kb_result["escalate"]):
+        st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
+        st.write("#### Finalize & Submit Ticket")
+        with st.form("submit_ticket_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                depts = ["Auto-detect Department"] + (university.departments or ["General"])
+                selected_dept = st.selectbox("Assign to Department", options=depts)
+            with col2:
+                prio_options = ["Auto-detect Priority"] + [p.value.title() for p in TicketPriority]
+                selected_prio = st.selectbox("Assign Priority", options=prio_options)
+
+            submitted = st.form_submit_button("Submit Ticket", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if submitted:
+            with st.spinner("Processing query analysis and routing..."):
+                # Clean up auto-detect values
+                dept_val = None if selected_dept == "Auto-detect Department" else selected_dept
+                prio_val = None if selected_prio == "Auto-detect Priority" else TicketPriority(selected_prio.lower())
+
+                svc = TicketService(db, university.id)
+                ticket = svc.create_ticket(
+                    student_id=user.id,
+                    title=title.strip(),
+                    description=description.strip(),
+                    department=dept_val,
+                    priority=prio_val
+                )
+
+                st.success(f"Ticket #{ticket.id} successfully created and cataloged!")
+                
+                # Clear session state
+                st.session_state[kb_check_key] = None
+                st.session_state[show_form_key] = False
+                st.session_state[form_reset_key] += 1
+                
+                status_val = ticket.status.value
+                prio_val = ticket.priority.value
+                status_badge = f"<span class='badge badge-{status_val}'>{status_val.replace('_', ' ')}</span>"
+                prio_badge = f"<span class='prio-badge prio-{prio_val}'>{prio_val}</span>"
+                
+                st.markdown(
+                    f"<div class='uqms-card' style='margin-top: 1rem; border-color: #BBF7D0; background-color: #F0FDF4;'>"
+                    f"<h4 style='margin-top: 0; color: #16A34A;'>Processed Ticket Summary</h4>"
+                    f"<p style='color:#1A1A1A;'><b>Ticket ID:</b> #{ticket.id}</p>"
+                    f"<p style='color:#1A1A1A;'><b>Title:</b> {ticket.title}</p>"
+                    f"<p style='color:#1A1A1A;'><b>Routed Department:</b> {ticket.department}</p>"
+                    f"<p style='color:#1A1A1A;'><b>Priority Level:</b> {prio_badge}</p>"
+                    f"<p style='color:#1A1A1A;'><b>Status:</b> {status_badge}</p>"
+                    f"<p style='color:#1A1A1A;'><b>Calculated Sentiment Score:</b> {ticket.sentiment_score:.2f}</p>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+
+
+def render_feedback(db: Session, university: University, user: User) -> None:
+    """Give feedback on resolved tickets with sliding scale."""
+    svc = TicketService(db, university.id)
+    # Fetch resolved tickets for this student
+    resolved = svc.list_tickets(student_id=user.id, status=TicketStatus.resolved)
+    no_feedback = [t for t in resolved if not t.feedback]
+
+    if not no_feedback:
+        st.markdown(
+            "<div style='padding: 2rem; border: 1px dashed #E5E5E5; border-radius: 8px; text-align: center; color: #6B6B6B;'>"
+            "You do not have any resolved tickets awaiting feedback."
+            "</div>",
+            unsafe_allow_html=True
+        )
+        return
+
+    # Render feedback form
+    ticket_map = {f"#{t.id} — {t.title}": t for t in no_feedback}
+    
+    with st.container():
+        st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
+        
+        chosen_ticket_label = st.selectbox("Select a Resolved Ticket", list(ticket_map.keys()))
+        selected_ticket = ticket_map[chosen_ticket_label]
+        
+        st.write(f"**Ticket Description:**")
+        st.write(selected_ticket.description)
+        st.markdown("<hr style='border:0; border-top:1px solid #E5E5E5; margin: 15px 0;'>", unsafe_allow_html=True)
+        
+        # Rating (1 to 5 stars)
+        score = st.slider(
+            "Satisfaction Rating (1 = Very Dissatisfied, 5 = Very Satisfied)", 
+            min_value=1.0, 
+            max_value=5.0, 
+            value=5.0, 
+            step=1.0
+        )
+        
+        # Display helpful text matching the score
+        score_meanings = {
+            1.0: "Very Dissatisfied",
+            2.0: "Dissatisfied",
+            3.0: "Neutral",
+            4.0: "Satisfied",
+            5.0: "Extremely Satisfied"
+        }
+        st.info(f"Your selection: **{score_meanings.get(score, '')}**")
+        
+        comment = st.text_area("Share your comments or suggestions (optional)", placeholder="How was your experience?")
+        
+        if st.button("Submit Rating & Review", use_container_width=True):
+            svc.add_feedback(selected_ticket.id, score, comment.strip())
+            st.success("Thank you! Your feedback has been registered.")
+            st.rerun()
+            
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_account_settings(db: Session, university: University, user: User) -> None:
+    """Student account settings, including permanent account deletion."""
+    st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
+    st.write("#### Account Profile")
+    st.write(f"**Name:** {user.name}")
+    st.write(f"**Email:** {user.email}")
+    st.write(f"**Institution:** {university.name}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='uqms-card' style='border-color: #FCA5A5; background-color: #FEF2F2;'>", unsafe_allow_html=True)
+    st.write("<h4 style='color: #DC2626;'>Danger Zone — Permanent Account Deletion</h4>", unsafe_allow_html=True)
+    st.write(
+        "Deleting your account is permanent and irreversible. All your tickets, feedback, "
+        "and account data for this institution will be permanently erased."
+    )
+
+    confirm_text = st.text_input(
+        "Type DELETE in all caps to confirm account deletion",
+        placeholder="DELETE",
+        key=f"del_account_confirm_{user.id}"
+    )
+
+    if st.button("Permanently Delete My Account", key=f"btn_del_account_{user.id}", use_container_width=True):
+        if confirm_text.strip() != "DELETE":
+            st.error("You must type DELETE to confirm account deletion.")
+        else:
+            from services.auth_service import AuthService
+            auth_svc = AuthService(db)
+            try:
+                auth_svc.delete_student_account(user.id, university.id, confirmation_text=confirm_text.strip())
+                st.session_state.clear()
+                st.success("Your account has been deleted. Logging you out...")
+                st.rerun()
+            except Exception as ex:
+                st.error(f"Failed to delete account: {ex}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_submit_ticket(db: Session, university: University, user: User) -> None:

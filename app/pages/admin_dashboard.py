@@ -390,6 +390,30 @@ def render_tickets(db: Session, university: University, user: User) -> None:
                     st.success(f"Ticket #{t.id} priority updated to '{new_prio_str}'!")
                     st.rerun()
 
+            # Admin Ticket Deletion Controls
+            st.markdown("<hr style='border:0; border-top:1px dashed #E5E5E5; margin: 15px 0;'>", unsafe_allow_html=True)
+            confirm_admin_del_key = f"confirm_del_admin_ticket_{t.id}"
+            if st.session_state.get(confirm_admin_del_key):
+                st.warning(f"Are you sure you want to delete Ticket #{t.id}? An immutable audit log entry will be recorded.")
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Yes, Confirm Delete Ticket", key=f"btn_yes_del_admin_t_{t.id}", use_container_width=True):
+                        try:
+                            svc.delete_ticket_by_admin(t.id, user.id)
+                            st.session_state.pop(confirm_admin_del_key, None)
+                            st.success(f"Ticket #{t.id} deleted successfully.")
+                            st.rerun()
+                        except Exception as ex:
+                            st.error(f"Error deleting ticket: {ex}")
+                with c2:
+                    if st.button("Cancel", key=f"btn_no_del_admin_t_{t.id}", use_container_width=True):
+                        st.session_state.pop(confirm_admin_del_key, None)
+                        st.rerun()
+            else:
+                if st.button(f"Delete Ticket #{t.id}", key=f"btn_del_admin_t_{t.id}"):
+                    st.session_state[confirm_admin_del_key] = True
+                    st.rerun()
+
 
 def render_kb(db: Session, university: University, user: User) -> None:
     """Page 3: Knowledge Base Management."""

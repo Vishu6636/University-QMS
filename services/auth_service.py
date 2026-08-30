@@ -241,9 +241,68 @@ class AuthService:
 
     @staticmethod
     def list_universities(db: Session) -> list[University]:
-        """Return all universities (used at the login/landing page)."""
+        """Return all universities (used at the landing page)."""
         return db.query(University).order_by(University.name).all()
 
     @staticmethod
     def get_university_by_slug(db: Session, slug: str) -> Optional[University]:
         return db.query(University).filter(University.slug == slug).first()
+
+    # ── Account Deletion ──────────────────────────────────────────────────────
+
+    def delete_student_account(
+        self,
+        user_id: int,
+        university_id: int,
+        confirmation_text: str = "",
+    ) -> bool:
+        """
+        Permanently delete a student account after logging an AuditLog entry.
+        Enforces server-side that the user exists, is a student, and matches university_id.
+        Requires confirmation_text == 'DELETE'.
+        """
+        if confirmation_text.strip() != "DELETE":
+            raise ValueError("Confirmation text must be 'DELETE' to proceed with account deletion.")
+
+        user = self.get_user_by_id(user_id, university_id)
+        if not user:
+            raise ValueError("Student account not found in this university.")
+        if user.role != UserRole.student:
+            raise PermissionError("Only student accounts can be deleted via this endpoint.")
+
+        from services.audit_service import AuditService
+        from models.audit_log import AuditLog
+
+        snapshot = {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "role": user.role.value,
+            "department": user.department,
+            "university_id": user.university_id,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        }
+        AuditService.log(
+            self.db,
+            university_id=user.university_id,
+            actor_user_id=user.id,
+            action="account_deleted",
+            target_type="user",
+            target_id=user.id,
+            details=snapshot,
+        )
+
+        try:
+            # Nullify actor_user_id on audit logs referencing this user to prevent FK constraint errors
+            self.db.query(AuditLog).filter(AuditLog.actor_user_id == user.id).update(
+                {AuditLog.actor_user_id: None}, synchronize_session=False
+            )
+            self.db.delete(user)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to delete user account in SQLite: %s", e)
+            raise
+
+        log.info("Student account deleted: id=%s email=%s uni=%s", user_id, user.email, university_id)
+        return True

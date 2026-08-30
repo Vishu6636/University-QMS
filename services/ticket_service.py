@@ -320,6 +320,100 @@ class TicketService:
             for status in TicketStatus
         }
 
+    # ── Deletion ───────────────────────────────────────────────────────────────
+
+    def delete_ticket_by_student(self, ticket_id: int, student_id: int) -> bool:
+        """
+        Hard-delete a ticket owned by student_id after logging an AuditLog entry.
+        Enforces server-side that student_id matches ticket.student_id.
+        """
+        ticket = self.get_ticket(ticket_id)
+        if not ticket:
+            raise ValueError(f"Ticket {ticket_id} not found in this university.")
+        if ticket.student_id != student_id:
+            raise PermissionError("Students can only delete their own tickets.")
+
+        from services.audit_service import AuditService
+        snapshot = {
+            "id": ticket.id,
+            "title": ticket.title,
+            "description": ticket.description,
+            "department": ticket.department,
+            "status": ticket.status.value,
+            "priority": ticket.priority.value,
+            "student_id": ticket.student_id,
+            "university_id": ticket.university_id,
+            "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+        }
+        AuditService.log(
+            self.db,
+            university_id=self.university_id,
+            actor_user_id=student_id,
+            action="ticket_deleted_by_student",
+            target_type="ticket",
+            target_id=ticket.id,
+            details=snapshot,
+        )
+
+        try:
+            self.db.delete(ticket)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to delete ticket in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
+
+        log.info("Student %s deleted ticket %s", student_id, ticket_id)
+        return True
+
+    def delete_ticket_by_admin(self, ticket_id: int, admin_user_id: int) -> bool:
+        """
+        Hard-delete a ticket in this university after logging an AuditLog entry.
+        Enforces server-side tenant scope matching self.university_id.
+        """
+        ticket = self.get_ticket(ticket_id)
+        if not ticket:
+            raise ValueError(f"Ticket {ticket_id} not found in this university.")
+        if ticket.university_id != self.university_id:
+            raise PermissionError("Admins can only delete tickets belonging to their own university.")
+
+        from services.audit_service import AuditService
+        snapshot = {
+            "id": ticket.id,
+            "title": ticket.title,
+            "description": ticket.description,
+            "department": ticket.department,
+            "status": ticket.status.value,
+            "priority": ticket.priority.value,
+            "student_id": ticket.student_id,
+            "university_id": ticket.university_id,
+            "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+        }
+        AuditService.log(
+            self.db,
+            university_id=self.university_id,
+            actor_user_id=admin_user_id,
+            action="ticket_deleted_by_admin",
+            target_type="ticket",
+            target_id=ticket.id,
+            details=snapshot,
+        )
+
+        try:
+            self.db.delete(ticket)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            log.exception("Failed to delete ticket by admin in SQLite: %s", e)
+            if sentry_sdk:
+                sentry_sdk.capture_exception(e)
+            raise
+
+        log.info("Admin %s deleted ticket %s in university %s", admin_user_id, ticket_id, self.university_id)
+        return True
+
 
 # ── Module-level helper functions ───────────────────────────────────────────
 
