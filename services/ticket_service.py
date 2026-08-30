@@ -76,7 +76,7 @@ class TicketService:
                 intent = predict_intent(description)
                 uni = self.db.query(University).filter(University.id == self.university_id).first()
                 uni_depts = uni.departments if uni else []
-                department = map_intent_to_department(intent, uni_depts)
+                department = map_intent_to_department(intent, uni_depts, query_text=description)
             except Exception as e:
                 log.warning("Failed to predict intent/department: %s", e)
                 if sentry_sdk:
@@ -417,32 +417,51 @@ class TicketService:
 
 # ── Module-level helper functions ───────────────────────────────────────────
 
-def map_intent_to_department(intent: str, departments: list[str]) -> str:
-    """Map intent string to the most relevant department in a university's list."""
-    mapping_keywords = {
-        "scholarship_inquiry": ["finance", "accounts", "bursary", "scholarship", "fees"],
-        "fee_payment": ["finance", "accounts", "bursary", "fees", "payment"],
-        "exam_schedule": ["exam", "examination", "registry", "academic"],
-        "hostel_booking": ["hostel", "residential", "housing", "accommodation"],
-        "attendance_policy": ["student affairs", "welfare", "attendance", "admin"],
-        "course_registration": ["computer science", "information technology", "engineering", "academic"],
-        "library_access": ["library", "digital library", "learning resources"],
-        "placement_info": ["placement", "career", "services", "employment"],
-        "grievance": ["student affairs", "welfare", "grievance", "complaints"],
-        "document_request": ["exam", "examination", "registry", "academic", "office"],
-        "admission_query": ["student affairs", "welfare", "admission", "admin"],
-        "revaluation_request": ["exam", "examination", "registry", "academic"],
-    }
-    
+def map_intent_to_department(intent: str, departments: list[str], query_text: str = "") -> str:
+    """
+    Map intent string or query text to the most relevant department in a university's list.
+    Avoids defaulting arbitrarily to index 0 (e.g. Aerospace Engineering).
+    """
     if not departments:
         return "General Support"
-        
-    keywords = mapping_keywords.get(intent, [])
-    for kw in keywords:
+
+    text_lower = f"{intent} {query_text}".lower()
+
+    mapping_keywords = {
+        "exam": ["exam", "examination", "registry", "academic", "academics"],
+        "fee": ["finance", "accounts", "bursary", "fee", "payment", "scholarship"],
+        "hostel": ["hostel", "residential", "housing", "accommodation", "student affairs", "dosa", "hcu"],
+        "placement": ["placement", "career", "training", "employment", "job", "internship"],
+        "library": ["library", "digital library", "learning resources"],
+        "admission": ["admission", "academic", "registry", "student affairs"],
+        "faculties": ["academic office", "humanities", "administration", "academic", "general"],
+        "history": ["academic office", "administration", "general", "office", "registrar", "student affairs"],
+        "general": ["academic office", "administration", "general", "office", "registrar", "student affairs"],
+    }
+
+    # 1. Check mapped intent keywords
+    intent_kw = mapping_keywords.get(intent, [])
+    for kw in intent_kw:
         for dept in departments:
             if kw in dept.lower():
                 return dept
-                
+
+    # 2. Check query text against category keywords
+    for cat_name, kw_list in mapping_keywords.items():
+        if any(w in text_lower for w in [cat_name] + kw_list):
+            for kw in kw_list:
+                for dept in departments:
+                    if kw in dept.lower():
+                        return dept
+
+    # 3. Fallback: Search for general administrative/academic department names in university list
+    admin_fallbacks = ["academic office", "administration", "general", "office", "registrar", "student affairs", "welfare"]
+    for fb in admin_fallbacks:
+        for dept in departments:
+            if fb in dept.lower():
+                return dept
+
+    # 4. If no administrative department exists, return the first department
     return departments[0]
 
 
