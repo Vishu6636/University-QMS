@@ -320,7 +320,7 @@ class TicketService:
             for status in TicketStatus
         }
 
-    # ── Deletion ───────────────────────────────────────────────────────────────
+    # ── Deletion Capabilities ──────────────────────────────────────────────────
 
     def delete_ticket_by_student(self, ticket_id: int, student_id: int) -> bool:
         """

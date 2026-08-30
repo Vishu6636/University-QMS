@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from models.university import University
 from models.user import User
 from models.ticket import TicketStatus, TicketPriority
+import importlib
+import services.ticket_service
+importlib.reload(services.ticket_service)
 from services.ticket_service import TicketService
 from utils.timezone import to_ist
 
@@ -365,6 +368,9 @@ def render_account_settings(db: Session, university: University, user: User) -> 
         if confirm_text.strip() != "DELETE":
             st.error("You must type DELETE to confirm account deletion.")
         else:
+            import importlib
+            import services.auth_service
+            importlib.reload(services.auth_service)
             from services.auth_service import AuthService
             auth_svc = AuthService(db)
             try:

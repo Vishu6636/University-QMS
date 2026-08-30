@@ -25,6 +25,9 @@ from models.kb_document import DocType, KBDocument
 from models.lead import Lead
 from models.audit_log import AuditLog
 from models.student_query_log import StudentQueryLog
+import importlib
+import services.ticket_service
+importlib.reload(services.ticket_service)
 from services.ticket_service import TicketService
 from services.kb_service import KBService
 from services.audit_service import AuditService
