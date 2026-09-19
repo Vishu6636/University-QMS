@@ -2,5 +2,13 @@
   "files.exclude": {
     "**/__pycache__": true,
     "**/*.pyc": true
+  },
+  "python.defaultInterpreterPath": "C:\\Users\\sriva_3b9ej2a\\miniconda3\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none"
   }
 }

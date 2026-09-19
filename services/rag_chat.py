@@ -13,14 +13,15 @@ answer_query(university_id, query, db=None, student_id=None, chat_history=None)
 import os
 import logging
 from datetime import datetime
+from typing import Optional
 
 try:
-    import sentry_sdk
+    import sentry_sdk  # type: ignore
 except ImportError:
     sentry_sdk = None
 
 import traceback
-from groq import (
+from groq import (  # type: ignore
     Groq,
     APIError,
     APIConnectionError,
@@ -29,7 +30,7 @@ from groq import (
     AuthenticationError,
     NotFoundError,
 )
-from services.ingestion import retrieve
+from services.ingestion import retrieve  # type: ignore
 from utils.structured_logger import log_event
 
 log = logging.getLogger(__name__)
@@ -41,11 +42,11 @@ VALID_CATEGORIES = frozenset([
 ])
 
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-FALLBACK_MODELS = ["openai/gpt-oss-120b", "groq/compound-mini", "qwen/qwen3.8-27b", "groq/compound", "openai/gpt-oss-20b"]
+FALLBACK_MODELS = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "llama-3.1-8b-instant", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]
 TOP_K = 5
 MAX_MERGED_CHUNKS = 8
 
-_client: Groq | None = None
+_client: Optional[Groq] = None
 _healed_universities: set[int] = set()
 
 

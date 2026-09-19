@@ -32,6 +32,7 @@ from services.ticket_service import TicketService
 from services.kb_service import KBService
 from services.audit_service import AuditService
 from utils.timezone import to_ist
+from app.components.billing_tab import render_billing_tab
 
 
 def render(db: Session, university: University, user: User) -> None:
@@ -67,7 +68,7 @@ def render(db: Session, university: University, user: User) -> None:
     ).count()
     sq_label = f"Student Questions ({sq_count})" if sq_count > 0 else "Student Questions"
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
         "Dashboard Overview",
         "Ticket Management",
         "Analytics & Insights",
@@ -75,6 +76,7 @@ def render(db: Session, university: University, user: User) -> None:
         "Knowledge Base",
         leads_label,
         sq_label,
+        "Billing & Plan",
         "Audit Log",
     ])
 
@@ -100,6 +102,9 @@ def render(db: Session, university: University, user: User) -> None:
         render_student_questions(db, university, user)
 
     with tab8:
+        render_billing_tab(db, university, user)
+
+    with tab9:
         render_audit(db, university, user)
 
 

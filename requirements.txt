@@ -34,3 +34,7 @@ python-dotenv>=1.0.0
 
 # ── Error monitoring ────────────────────────────────────────────────────────────
 sentry-sdk>=2.0.0
+
+# ── Webhook API server (Razorpay) ──────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn>=0.28.0

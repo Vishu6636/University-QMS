@@ -18,6 +18,7 @@ from models.base import SessionLocal
 from models.lead import Lead
 from services.auth_service import AuthService
 from services.rag_chat import answer_query
+from services.billing import is_subscription_active
 
 
 def _get_client_ip() -> str:
@@ -52,7 +53,7 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── University Selector (approved only) ──────────────────────────────────
+    # ── University Resolution & White-Labeling ──────────────────────────────
     all_universities = AuthService.list_universities(db)
     approved_universities = [u for u in all_universities if u.status == "approved"]
 
@@ -66,22 +67,63 @@ def render() -> None:
         )
         return
 
-    uni_names = [u.name for u in approved_universities]
-    selected_name = st.selectbox(
-        "Select a University",
-        uni_names,
-        key="public_inquiry_uni_select",
-    )
-    uni = next(u for u in approved_universities if u.name == selected_name)
+    # Check if a specific college slug was passed in URL (?uni=college-slug)
+    query_slug = (st.query_params.get("uni") or "").strip().lower()
+    uni = None
+    if query_slug:
+        uni = next((u for u in approved_universities if (u.slug or "").lower() == query_slug), None)
 
-    st.markdown(
-        f"<div class='uqms-card' style='padding: 12px 16px;'>"
-        f"<p style='margin:0; font-size:13px; color:#6B6B6B;'>"
-        f"Chatting with <b>{uni.name}</b>'s knowledge base. "
-        f"Answers are generated from the university's uploaded documents.</p>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    if uni:
+        # College White-Label Header
+        logo_img = ""
+        if uni.logo_url:
+            logo_img = f"<img src='{uni.logo_url}' style='width:46px; height:46px; border-radius:8px; object-fit:contain; margin-right:14px; background:#FFF; border:1px solid #E5E5E5; padding:2px;' />"
+        st.markdown(
+            f"""
+            <div style='display: flex; align-items: center; margin-bottom: 1.25rem; padding: 14px 18px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px;'>
+                {logo_img}
+                <div>
+                    <h3 style='margin: 0; font-size: 18px; color: #1A1A1A; font-weight: 600;'>{uni.name}</h3>
+                    <p style='margin: 0; font-size: 13px; color: #6B6B6B;'>Official 24/7 AI Admission & Student Helpdesk</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        # Generic Dropdown Selection (Default)
+        uni_names = [u.name for u in approved_universities]
+        selected_name = st.selectbox(
+            "Select a University",
+            uni_names,
+            key="public_inquiry_uni_select",
+        )
+        uni = next(u for u in approved_universities if u.name == selected_name)
+        st.markdown(
+            f"<div class='uqms-card' style='padding: 12px 16px;'>"
+            f"<p style='margin:0; font-size:13px; color:#6B6B6B;'>"
+            f"Chatting with <b>{uni.name}</b>'s knowledge base. "
+            f"Answers are generated from the university's uploaded documents.</p>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── Subscription Entitlement Check (Calm Paused Notice) ────────────────────
+    if not is_subscription_active(uni):
+        st.markdown(
+            f"""
+            <div class='uqms-card' style='padding: 2.5rem 1.5rem; text-align: center; border: 1px solid #E4E4E7; background: #FAFAFA; border-radius: 8px; margin-top: 1rem;'>
+                <p style='color: #52525B; font-size: 15px; margin: 0; font-weight: 500;'>
+                    The 24/7 AI query service for <b>{uni.name}</b> is temporarily paused pending subscription renewal.
+                </p>
+                <p style='color: #71717A; font-size: 13px; margin: 8px 0 0 0;'>
+                    Please contact the university admissions office directly for assistance.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
 
     # ── Chat Interface ───────────────────────────────────────────────────────
     history_key = f"public_chat_{uni.id}"

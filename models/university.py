@@ -24,6 +24,17 @@ class University(Base):
         nullable=False,
     )
 
+    # ── Branding & Multi-Tenant Customisation ──────────────────────────────────
+    logo_url = Column(String(500), nullable=True)
+
+    # ── Subscription & SaaS Billing (Modular) ──────────────────────────────────
+    subscription_status = Column(String(50), nullable=False, default="trial")  # 'trial', 'active', 'expired'
+    subscription_plan = Column(String(100), nullable=False, default="14-Day Free Trial")
+    trial_ends_at = Column(DateTime(timezone=True), nullable=True)
+    subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
+    razorpay_customer_id = Column(String(100), nullable=True)
+    razorpay_subscription_id = Column(String(100), nullable=True)
+
     # Relationships
     users = relationship("User", back_populates="university", cascade="all, delete-orphan")
     tickets = relationship("Ticket", back_populates="university", cascade="all, delete-orphan")

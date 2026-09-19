@@ -1181,7 +1181,12 @@ student_pg = st.Page(page_student_dashboard, title="Student Dashboard", icon=":m
 rag_pg = st.Page(page_rag_chat, title="RAG Chat", icon=":material/chat:")
 upload_pg = st.Page(page_document_upload, title="Document Upload", icon=":material/upload_file:")
 onboarding_pg = st.Page(page_onboarding, title="Onboarding", icon=":material/add_business:")
-public_inquiry_pg = st.Page(page_public_inquiry, title="Public Inquiry", icon=":material/public:")
+public_inquiry_pg = st.Page(
+    page_public_inquiry,
+    title="Public Inquiry",
+    icon=":material/public:",
+    default=bool(st.query_params.get("uni")),
+)
 super_admin_pg = st.Page(page_super_admin_dashboard, title="Super Admin Console", icon=":material/admin_panel_settings:")
 privacy_policy_pg = st.Page(page_privacy_policy, title="Privacy Policy", icon=":material/policy:")
 
