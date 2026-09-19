@@ -34,10 +34,46 @@ _MANAGED_PLAN_NOTE = "uqms_starter_monthly"
 
 def get_razorpay_credentials() -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """Retrieve Razorpay keys strictly from environment variables."""
-    key_id = os.getenv("RAZORPAY_KEY_ID")
-    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
-    webhook_secret = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+    key_id = (os.getenv("RAZORPAY_KEY_ID") or "").strip() or None
+    key_secret = (os.getenv("RAZORPAY_KEY_SECRET") or "").strip() or None
+    webhook_secret = (os.getenv("RAZORPAY_WEBHOOK_SECRET") or "").strip() or None
     return key_id, key_secret, webhook_secret
+
+
+def coerce_notes_dict(value: Any) -> Dict[str, Any]:
+    """Razorpay sometimes returns notes as {}, sometimes as []."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list):
+        merged: Dict[str, Any] = {}
+        for entry in value:
+            if isinstance(entry, dict):
+                merged.update(entry)
+        return merged
+    return {}
+
+
+def _plan_item_dict(plan: Dict[str, Any]) -> Dict[str, Any]:
+    item = plan.get("item", {})
+    if isinstance(item, list):
+        item = next((entry for entry in item if isinstance(entry, dict)), {})
+    return item if isinstance(item, dict) else {}
+
+
+def _razorpay_error_message(resp: Any, fallback: str) -> str:
+    if not isinstance(resp, dict):
+        return fallback
+    err = resp.get("error")
+    if isinstance(err, dict):
+        return err.get("description") or err.get("reason") or fallback
+    if isinstance(err, list) and err:
+        first = err[0]
+        if isinstance(first, dict):
+            return first.get("description") or first.get("reason") or fallback
+        return str(first)
+    if isinstance(err, str) and err.strip():
+        return err
+    return fallback
 
 
 # ── Entitlement & Status Checking ─────────────────────────────────────────────
@@ -185,7 +221,7 @@ def create_payment_link(
         return {
             "success": True,
             "simulated": True,
-            "payment_url": f"?payment_simulated=true&uni={university.slug}&amount={amount_in_inr}",
+            "payment_url": None,
             "id": f"plink_sim_{university.id}_{int(datetime.now().timestamp())}",
             "message": "Development mode: Razorpay keys not set. Running in simulation mode.",
         }
@@ -220,7 +256,7 @@ def create_payment_link(
         }
     return {
         "success": False,
-        "error": resp.get("error", {}).get("description", "Failed to create payment link"),
+        "error": _razorpay_error_message(resp, "Failed to create payment link"),
     }
 
 
@@ -234,13 +270,13 @@ def create_autopay_subscription(
     Requires a pre-created plan_id from Razorpay Dashboard or environment.
     """
     key_id, _, _ = get_razorpay_credentials()
-    resolved_plan_id = plan_id or os.getenv("RAZORPAY_STARTER_PLAN_ID")
+    resolved_plan_id = plan_id or (os.getenv("RAZORPAY_STARTER_PLAN_ID") or "").strip() or None
 
     if not key_id:
         return {
             "success": True,
             "simulated": True,
-            "subscription_url": f"?autopay_simulated=true&uni={university.slug}",
+            "subscription_url": None,
             "id": f"sub_sim_{university.id}",
             "message": "Development mode: Razorpay keys are not configured.",
         }
@@ -283,25 +319,34 @@ def create_autopay_subscription(
         }
     return {
         "success": False,
-        "error": resp.get("error", {}).get("description", "Failed to create subscription mandate"),
+        "error": _razorpay_error_message(resp, "Failed to create subscription mandate"),
     }
+
+
+def _is_starter_plan(plan: Dict[str, Any]) -> bool:
+    item = _plan_item_dict(plan)
+    if (
+        plan.get("period") != "monthly"
+        or plan.get("interval") != 1
+        or item.get("amount") != DEFAULT_STARTER_PRICE_INR * 100
+        or item.get("currency") != "INR"
+    ):
+        return False
+    notes = coerce_notes_dict(plan.get("notes"))
+    if notes.get("managed_by") == _MANAGED_PLAN_NOTE:
+        return True
+    # Razorpay stores empty notes as [], so also reuse the shared Starter plan by name.
+    return item.get("name") == DEFAULT_PLAN_NAME
 
 
 def _get_or_create_starter_plan() -> Optional[str]:
     """Return the shared UQMS monthly plan, creating it only when necessary."""
     success, response = _razorpay_request("GET", "plans?count=100")
-    if not success:
+    if not success or not isinstance(response, dict):
         return None
 
-    for plan in response.get("items", []):
-        item = plan.get("item", {})
-        if (
-            plan.get("period") == "monthly"
-            and plan.get("interval") == 1
-            and item.get("amount") == DEFAULT_STARTER_PRICE_INR * 100
-            and item.get("currency") == "INR"
-            and plan.get("notes", {}).get("managed_by") == _MANAGED_PLAN_NOTE
-        ):
+    for plan in response.get("items", []) or []:
+        if isinstance(plan, dict) and _is_starter_plan(plan):
             return plan.get("id")
 
     payload = {
@@ -316,7 +361,9 @@ def _get_or_create_starter_plan() -> Optional[str]:
         "notes": {"managed_by": _MANAGED_PLAN_NOTE},
     }
     success, response = _razorpay_request("POST", "plans", payload)
-    return response.get("id") if success else None
+    if success and isinstance(response, dict):
+        return response.get("id")
+    return None
 
 
 # ── Webhook Signature Verification ────────────────────────────────────────────

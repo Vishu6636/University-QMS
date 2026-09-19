@@ -22,6 +22,10 @@ from services.billing import (
 )
 
 
+def _is_external_checkout_url(url) -> bool:
+    return isinstance(url, str) and url.startswith(("https://", "http://"))
+
+
 def render_billing_tab(db: Session, university: University, user: User) -> None:
     """Render the calm SaaS billing settings tab."""
     # ── Check for payment return query params (Synchronous confirmation) ──────
@@ -109,7 +113,12 @@ def render_billing_tab(db: Session, university: University, user: User) -> None:
                 res = create_payment_link(university, admin_email=user.email)
                 if res.get("success"):
                     pay_url = res.get("payment_url")
-                    st.session_state["active_pay_url"] = pay_url
+                    if _is_external_checkout_url(pay_url):
+                        st.session_state["active_pay_url"] = pay_url
+                    elif res.get("simulated"):
+                        st.info(res.get("message", "Payment simulation mode is active."))
+                    else:
+                        st.error("Razorpay did not return a checkout URL.")
                 else:
                     st.error(res.get("error", "Failed to initiate payment."))
 
@@ -119,11 +128,21 @@ def render_billing_tab(db: Session, university: University, user: User) -> None:
                 res = create_autopay_subscription(university, customer_email=user.email)
                 if res.get("success"):
                     sub_url = res.get("subscription_url")
-                    st.session_state["active_sub_url"] = sub_url
+                    if _is_external_checkout_url(sub_url):
+                        st.session_state["active_sub_url"] = sub_url
+                    elif res.get("simulated"):
+                        st.info(res.get("message", "AutoPay simulation mode is active. Configure Razorpay keys to authorize a live UPI mandate."))
+                    else:
+                        st.error("Razorpay did not return an AutoPay authorization URL.")
                 else:
                     st.error(res.get("error", "Failed to set up AutoPay."))
 
     # Display active payment or mandate link calmly if generated
+    if not _is_external_checkout_url(st.session_state.get("active_pay_url")):
+        st.session_state.pop("active_pay_url", None)
+    if not _is_external_checkout_url(st.session_state.get("active_sub_url")):
+        st.session_state.pop("active_sub_url", None)
+
     if "active_pay_url" in st.session_state:
         st.markdown(
             f"""

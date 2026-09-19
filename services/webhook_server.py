@@ -61,6 +61,7 @@ from services.billing import (
     verify_webhook_signature,
     extend_subscription,
     get_subscription_summary,
+    coerce_notes_dict,
 )
 
 logging.basicConfig(
@@ -140,7 +141,7 @@ async def handle_razorpay_webhook(request: Request, db=Depends(get_db)):
         # Event Type A: Payment Link Paid (Manual Renewal)
         if event in ("payment_link.paid", "payment.captured"):
             payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
-            notes = payment_entity.get("notes", {})
+            notes = coerce_notes_dict(payment_entity.get("notes"))
             uni_id_str = notes.get("university_id")
             uni_slug = notes.get("university_slug")
             payment_id = payment_entity.get("id")
@@ -168,7 +169,7 @@ async def handle_razorpay_webhook(request: Request, db=Depends(get_db)):
         elif event in ("subscription.charged", "subscription.activated"):
             sub_entity = payload.get("payload", {}).get("subscription", {}).get("entity", {})
             sub_id = sub_entity.get("id")
-            notes = sub_entity.get("notes", {})
+            notes = coerce_notes_dict(sub_entity.get("notes"))
             uni_id_str = notes.get("university_id")
 
             uni = None
