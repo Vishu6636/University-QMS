@@ -163,7 +163,7 @@ def get_subscription_summary(university: University) -> Dict[str, Any]:
         "badge_style": badge_style,
         "headline": headline,
         "subtext": subtext,
-        "has_autopay": bool(university.razorpay_subscription_id),
+        "has_autopay": bool(university.razorpay_subscription_id and raw_status == "active"),
     }
 
 
