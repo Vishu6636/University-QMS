@@ -19,6 +19,7 @@ from services.billing import (
     create_payment_link,
     create_autopay_subscription,
     extend_subscription,
+    sync_subscription_from_razorpay,
 )
 
 
@@ -48,7 +49,8 @@ def render_billing_tab(db: Session, university: University, user: User) -> None:
                 del st.query_params["payment_id"]
             st.rerun()
 
-    # Fetch calm display summary
+    # Sync live Razorpay mandate status and fetch calm display summary
+    sync_subscription_from_razorpay(university, db=db)
     info = get_subscription_summary(university)
 
     st.markdown("<h3>Billing & Subscription</h3>", unsafe_allow_html=True)
@@ -82,8 +84,8 @@ def render_billing_tab(db: Session, university: University, user: User) -> None:
                     <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 500; color: #27272A;">Monthly (₹4,999 / mo)</p>
                 </div>
                 <div>
-                    <p style="margin: 0; font-size: 12px; color: #71717A;">Valid Through</p>
-                    <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 500; color: #27272A;">{info['expires_at_formatted']}</p>
+                    <p style="margin: 0; font-size: 12px; color: #71717A;">Next Due Date</p>
+                    <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 500; color: #27272A;">{info['next_due_date']}</p>
                 </div>
                 <div>
                     <p style="margin: 0; font-size: 12px; color: #71717A;">Time Remaining</p>
@@ -125,7 +127,7 @@ def render_billing_tab(db: Session, university: University, user: User) -> None:
     with col2:
         if st.button("Set up Auto-Pay (UPI)", key="btn_setup_autopay", use_container_width=True):
             with st.spinner("Setting up UPI AutoPay mandate..."):
-                res = create_autopay_subscription(university, customer_email=user.email)
+                res = create_autopay_subscription(university, customer_email=user.email, db=db)
                 if res.get("success"):
                     sub_url = res.get("subscription_url")
                     if _is_external_checkout_url(sub_url):

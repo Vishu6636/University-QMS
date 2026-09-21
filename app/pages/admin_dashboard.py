@@ -33,6 +33,7 @@ from services.kb_service import KBService
 from services.audit_service import AuditService
 from utils.timezone import to_ist
 from app.components.billing_tab import render_billing_tab
+from services.billing import get_subscription_summary, sync_subscription_from_razorpay
 
 
 def render(db: Session, university: University, user: User) -> None:
@@ -51,6 +52,26 @@ def render(db: Session, university: University, user: User) -> None:
         db.rollback()
 
     st.markdown(f"<h2>Admin Portal &mdash; {university.name}</h2>", unsafe_allow_html=True)
+
+    # Subscription status & Next Due Date indicator
+    try:
+        sync_subscription_from_razorpay(university, db=db)
+        sub_info = get_subscription_summary(university)
+        badge_dot = "#10B981" if sub_info["urgency"] == "normal" else ("#F59E0B" if sub_info["urgency"] == "amber" else "#EF4444")
+        st.markdown(
+            f"<div style='display:inline-flex; align-items:center; gap:8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:20px; padding:4px 14px; font-size:12px; font-weight:500; color:#334155; margin-bottom:1rem; box-shadow:0 1px 2px rgba(0,0,0,0.02);'>"
+            f"<span style='display:inline-block; width:8px; height:8px; border-radius:50%; background:{badge_dot};'></span>"
+            f"<span><b>Plan:</b> {sub_info['plan_name']}</span>"
+            f"<span style='color:#CBD5E1;'>•</span>"
+            f"<span><b>Next Due Date:</b> {sub_info['next_due_date']}</span>"
+            f"<span style='color:#CBD5E1;'>•</span>"
+            f"<span>({sub_info['days_left']} days remaining)</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass
+
     st.markdown(
         f"<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         f"Monitor metrics, process tickets, manage knowledge base documents, and configure channels."

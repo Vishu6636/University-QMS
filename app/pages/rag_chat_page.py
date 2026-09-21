@@ -10,12 +10,15 @@ from services.rag_chat import answer_query
 
 def render(uni, user) -> None:
     st.markdown("<h2>RAG Chat</h2>", unsafe_allow_html=True)
+    admin_hint = ""
+    if getattr(user, "role", None) in ("admin", "super_admin"):
+        admin_hint = "<br><i>For operational data (tickets, students, feedback), use the <b>Admin Assistant</b> page.</i>"
     st.markdown(
         f"<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
         f"Ask questions answered from <b>{uni.name}</b>'s uploaded knowledge base — "
         f"FAQs, policies, circulars, and documents. "
-        f"Queries outside the knowledge base are automatically escalated to a support ticket.<br>"
-        f"<i>For operational data (tickets, students, feedback), use the <b>Admin Assistant</b> page.</i>"
+        f"Queries outside the knowledge base are automatically escalated to a support ticket."
+        f"{admin_hint}"
         f"</p>",
         unsafe_allow_html=True,
     )

@@ -88,6 +88,35 @@ try:
         if "privacy_consent_given_at" not in columns:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN privacy_consent_given_at TIMESTAMP"))
+    if "universities" in inspector.get_table_names():
+        uni_columns = [col["name"] for col in inspector.get_columns("universities")]
+        uni_cols_to_add = [
+            ("logo_url", "VARCHAR(500)"),
+            ("subscription_status", "VARCHAR(50) DEFAULT 'trial'"),
+            ("subscription_plan", "VARCHAR(100) DEFAULT '14-Day Free Trial'"),
+            ("trial_ends_at", "TIMESTAMP"),
+            ("subscription_expires_at", "TIMESTAMP"),
+            ("razorpay_customer_id", "VARCHAR(100)"),
+            ("razorpay_subscription_id", "VARCHAR(100)"),
+        ]
+        with engine.begin() as conn:
+            for col_name, col_type in uni_cols_to_add:
+                if col_name not in uni_columns:
+                    conn.execute(text(f"ALTER TABLE universities ADD COLUMN {col_name} {col_type}"))
+
+    # Auto-ensure any existing universities have valid trial dates
+    from datetime import datetime, timezone, timedelta
+    now_utc = datetime.now(timezone.utc)
+    for u in db_inst.query(University).all():
+        if not u.subscription_status:
+            u.subscription_status = "trial"
+        if not u.subscription_plan:
+            u.subscription_plan = "14-Day Free Trial"
+        if not u.trial_ends_at:
+            u.trial_ends_at = now_utc + timedelta(days=14)
+        if not u.subscription_expires_at:
+            u.subscription_expires_at = u.trial_ends_at or (now_utc + timedelta(days=14))
+    db_inst.commit()
 finally:
     db_inst.close()
 

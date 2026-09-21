@@ -158,6 +158,8 @@ def get_subscription_summary(university: University) -> Dict[str, Any]:
         "days_left": max(0, days_left),
         "expires_at": expires_at,
         "expires_at_formatted": expires_at.strftime("%B %d, %Y"),
+        "next_due_date": expires_at.strftime("%B %d, %Y"),
+        "next_due_date_short": expires_at.strftime("%d %b %Y"),
         "badge_style": badge_style,
         "headline": headline,
         "subtext": subtext,
@@ -264,6 +266,7 @@ def create_autopay_subscription(
     university: University,
     plan_id: Optional[str] = None,
     customer_email: Optional[str] = None,
+    db: Optional[Session] = None,
 ) -> Dict[str, Any]:
     """
     Create a recurring subscription mandate (Option 2: UPI AutoPay / Recurring).
@@ -303,10 +306,19 @@ def create_autopay_subscription(
             "university_slug": university.slug,
         },
     }
+    if customer_email:
+        payload["notify_info"] = {"notify_email": customer_email}
 
     success, resp = _razorpay_request("POST", "subscriptions", payload)
     if success:
+        sub_id = resp.get("id")
         subscription_url = resp.get("short_url")
+        if db and sub_id:
+            university.razorpay_subscription_id = sub_id
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
         if not subscription_url:
             return {
                 "success": False,
@@ -314,13 +326,52 @@ def create_autopay_subscription(
             }
         return {
             "success": True,
-            "subscription_id": resp.get("id"),
+            "subscription_id": sub_id,
             "subscription_url": subscription_url,
         }
     return {
         "success": False,
         "error": _razorpay_error_message(resp, "Failed to create subscription mandate"),
     }
+
+
+def sync_subscription_from_razorpay(university: University, db: Optional[Session] = None) -> Dict[str, Any]:
+    """
+    Sync live subscription status and next charge/due date from Razorpay if available.
+    """
+    sub_id = university.razorpay_subscription_id
+    if not sub_id:
+        return {}
+
+    success, resp = _razorpay_request("GET", f"subscriptions/{sub_id}")
+    if not success or not isinstance(resp, dict):
+        return {}
+
+    status = resp.get("status")
+    charge_at = resp.get("charge_at") or resp.get("current_end")
+    updated = False
+
+    if status in ("active", "authenticated"):
+        if university.subscription_status != "active":
+            university.subscription_status = "active"
+            updated = True
+
+    if charge_at:
+        try:
+            next_charge_dt = datetime.fromtimestamp(charge_at, tz=timezone.utc)
+            if university.subscription_expires_at != next_charge_dt:
+                university.subscription_expires_at = next_charge_dt
+                updated = True
+        except Exception:
+            pass
+
+    if db and updated:
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    return resp
 
 
 def _is_starter_plan(plan: Dict[str, Any]) -> bool:
