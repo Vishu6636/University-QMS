@@ -8,6 +8,14 @@ or
 
 **LIVE** on **AWS** https://uqms-portal.duckdns.org 
 
+## Demo Credentials
+
+For evaluation purposes, demo login credentials are provided here:
+
+👉 **[View Demo Credentials](./DEMO_CREDENTIALS.md)**
+
+for testing both student and admin dashboard
+
 ## Highlights
 
 - **Role-based workspaces** for platform administrators, institution administrators, and students.
