@@ -27,10 +27,10 @@ def _slugify(text: str) -> str:
 
 
 def render(db: Session) -> None:
-    st.markdown("<h2>Register Your University</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>Register Your Institution</h2>", unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
-        "Fill in the details below to register your university and create your first administrator account."
+        "Fill in the details below to register your institution and create your first administrator account."
         "</p>",
         unsafe_allow_html=True,
     )
@@ -44,7 +44,7 @@ def render(db: Session) -> None:
         st.markdown("<h3>Email Verification Required</h3>", unsafe_allow_html=True)
         st.info(
             f"A 6-digit verification code has been sent to **{onboarding_email}**.\n\n"
-            f"Please enter the code below to complete your university registration."
+            f"Please enter the code below to complete your institution registration."
         )
 
         with st.form("onboarding_otp_form"):
@@ -98,6 +98,7 @@ def render(db: Session) -> None:
                 uni_name = payload["uni_name"]
                 slug = payload["slug"]
                 departments = payload["departments"]
+                institution_type = payload.get("institution_type", "institution")
                 admin_name = payload["admin_name"]
                 admin_email = payload["admin_email"]
                 admin_pass = payload["admin_pass"]
@@ -106,6 +107,7 @@ def render(db: Session) -> None:
                     name=uni_name.strip(),
                     slug=slug,
                     department_list=json.dumps(departments),
+                    institution_type=institution_type,
                     status="pending",
                 )
                 db.add(uni)
@@ -135,7 +137,7 @@ def render(db: Session) -> None:
 
                 st.success(f"🎉 **{uni.name}** and admin account for **{admin_user.name}** verified successfully!")
                 st.info(
-                    "Your university registration is under review. "
+                    "Your institution registration is under review. "
                     "A confirmation welcome email has been sent to your inbox."
                 )
 
@@ -147,8 +149,14 @@ def render(db: Session) -> None:
     # ── STEP 1: INITIAL REGISTRATION FORM ────────────────────────────────────
     st.markdown("<div class='uqms-card'>", unsafe_allow_html=True)
     with st.form("onboarding_form"):
-        st.markdown("<h4 style='margin-top:0;'>University Details</h4>", unsafe_allow_html=True)
-        uni_name = st.text_input("University Name", placeholder="e.g. Greenfield University")
+        st.markdown("<h4 style='margin-top:0;'>Institution Details</h4>", unsafe_allow_html=True)
+        institution_type = st.selectbox(
+            "Institution Type",
+            options=["institution", "school", "college", "university"],
+            format_func=str.capitalize,
+            help="This controls the wording displayed in the public support portal.",
+        )
+        uni_name = st.text_input("Institution Name", placeholder="e.g. Greenfield University")
         dept_raw = st.text_input(
             "Departments (comma-separated)",
             placeholder="e.g. Computer Science, Law, MBA, Physics",
@@ -171,7 +179,7 @@ def render(db: Session) -> None:
     # ── Validation ────────────────────────────────────────────────────────────
     errors = []
     if not uni_name.strip():
-        errors.append("University name is required.")
+        errors.append("Institution name is required.")
     if not admin_name.strip():
         errors.append("Admin name is required.")
     if not admin_email.strip():
@@ -191,7 +199,7 @@ def render(db: Session) -> None:
     slug = _slugify(uni_name)
     existing_slug = db.query(University).filter(University.slug == slug).first()
     if existing_slug:
-        errors.append(f"A university with slug '{slug}' already exists. Choose a different name.")
+        errors.append(f"An institution with slug '{slug}' already exists. Choose a different name.")
 
     if errors:
         for e in errors:
@@ -220,6 +228,7 @@ def render(db: Session) -> None:
         "uni_name": uni_name.strip(),
         "slug": slug,
         "departments": departments,
+        "institution_type": institution_type,
         "admin_name": admin_name.strip(),
         "admin_email": admin_email.strip(),
         "admin_pass": admin_pass,
