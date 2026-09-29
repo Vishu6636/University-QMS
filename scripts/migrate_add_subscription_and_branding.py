@@ -19,6 +19,8 @@ from models.university import University
 
 COLUMNS_TO_ADD = [
     ("logo_url", "VARCHAR(500)"),
+    ("website_url", "VARCHAR(500)"),
+    ("institution_type", "VARCHAR(50) DEFAULT 'institution'"),
     ("subscription_status", "VARCHAR(50) DEFAULT 'trial'"),
     ("subscription_plan", "VARCHAR(100) DEFAULT '14-Day Free Trial'"),
     ("trial_ends_at", "TIMESTAMP"),

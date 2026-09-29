@@ -26,6 +26,9 @@ class University(Base):
 
     # ── Branding & Multi-Tenant Customisation ──────────────────────────────────
     logo_url = Column(String(500), nullable=True)
+    website_url = Column(String(500), nullable=True)
+    # institution_type: 'school' | 'college' | 'university' | 'institution' (neutral)
+    institution_type = Column(String(50), nullable=False, default="institution")
 
     # ── Subscription & SaaS Billing (Modular) ──────────────────────────────────
     subscription_status = Column(String(50), nullable=False, default="trial")  # 'trial', 'active', 'expired'
@@ -44,6 +47,11 @@ class University(Base):
     platform_complaints = relationship("PlatformComplaint", back_populates="university", cascade="all, delete-orphan")
 
     # ── Helpers ────────────────────────────────────────────────────────────────
+
+    @property
+    def institution_label(self) -> str:
+        """Return the human-readable capitalised institution type for UI labels."""
+        return (self.institution_type or "institution").capitalize()
 
     @property
     def departments(self) -> list[str]:

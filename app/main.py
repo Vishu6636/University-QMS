@@ -92,6 +92,8 @@ try:
         uni_columns = [col["name"] for col in inspector.get_columns("universities")]
         uni_cols_to_add = [
             ("logo_url", "VARCHAR(500)"),
+            ("website_url", "VARCHAR(500)"),
+            ("institution_type", "VARCHAR(50) DEFAULT 'institution'"),
             ("subscription_status", "VARCHAR(50) DEFAULT 'trial'"),
             ("subscription_plan", "VARCHAR(100) DEFAULT '14-Day Free Trial'"),
             ("trial_ends_at", "TIMESTAMP"),
@@ -788,9 +790,22 @@ def run_page(render_func, bg_class: str = "bg-landing"):
             unsafe_allow_html=True
         )
     else:
+        # Detect institution type from ?uni= param for correct portal label
+        from models.base import SessionLocal as _SL
+        _portal_label = "Institution Support Portal"
+        try:
+            _uni_slug = (st.query_params.get("uni") or "").strip().lower()
+            if _uni_slug:
+                _db = st.session_state.get("db") or _SL()
+                from models.university import University as _Uni
+                _uni = _db.query(_Uni).filter(_Uni.slug == _uni_slug).first()
+                if _uni:
+                    _portal_label = f"{_uni.institution_label} Support Portal"
+        except Exception:
+            pass
         st.markdown(
             f"<div class='uqms-topbar'>"
-            f"<div class='uqms-topbar-title'>{icon_svg('portal')}University Support Portal</div>"
+            f"<div class='uqms-topbar-title'>{icon_svg('portal')}{_portal_label}</div>"
             f"<div class='uqms-topbar-user'>Not Logged In</div>"
             f"</div>",
             unsafe_allow_html=True
@@ -829,7 +844,7 @@ def _show_login_page() -> None:
         return
 
     st.markdown(
-        "<h1 style='text-align:center;'>University QMS Portal</h1>",
+        "<h1 style='text-align:center;'>Institution QMS Portal</h1>",
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -849,7 +864,7 @@ def _show_login_page() -> None:
         "<div class='uqms-card' style='text-align:center; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid #C7D2FE;'>"
         "<p style='margin:0 0 4px 0; font-size:15px; font-weight:600; color:#4F46E5;'>Public Inquiry</p>"
         "<p style='margin:0; font-size:13px; color:#6B6B6B;'>"
-        "No account needed — explore any university's knowledge base via the "
+        "No account needed \u2014 explore any institution's knowledge base via the "
         "<b>Public Inquiry</b> page in the sidebar."
         "</p>"
         "</div>",

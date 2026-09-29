@@ -44,23 +44,15 @@ def render() -> None:
         st.session_state.session_id = str(uuid.uuid4())
     db = st.session_state.get("db") or SessionLocal()
 
-    st.markdown("<h2>Ask About a University</h2>", unsafe_allow_html=True)
-    st.markdown(
-        "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
-        "Explore any university's knowledge base — no account needed. "
-        "Ask about admissions, fees, courses, deadlines, and more."
-        "</p>",
-        unsafe_allow_html=True,
-    )
 
-    # ── University Resolution & White-Labeling ──────────────────────────────
+    # ── Institution Resolution & White-Labeling ────────────────────────
     all_universities = AuthService.list_universities(db)
     approved_universities = [u for u in all_universities if u.status == "approved"]
 
     if not approved_universities:
         st.markdown(
             "<div class='uqms-card' style='text-align:center; padding: 2rem;'>"
-            "<p style='color:#6B6B6B;'>No universities are currently accepting public inquiries. "
+            "<p style='color:#6B6B6B;'>No institutions are currently accepting public inquiries. "
             "Please check back later.</p>"
             "</div>",
             unsafe_allow_html=True,
@@ -74,36 +66,61 @@ def render() -> None:
         uni = next((u for u in approved_universities if (u.slug or "").lower() == query_slug), None)
 
     if uni:
-        # College White-Label Header
-        logo_img = ""
-        if uni.logo_url:
-            logo_img = f"<img src='{uni.logo_url}' style='width:46px; height:46px; border-radius:8px; object-fit:contain; margin-right:14px; background:#FFF; border:1px solid #E5E5E5; padding:2px;' />"
-        st.markdown(
-            f"""
-            <div style='display: flex; align-items: center; margin-bottom: 1.25rem; padding: 14px 18px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px;'>
-                {logo_img}
-                <div>
-                    <h3 style='margin: 0; font-size: 18px; color: #1A1A1A; font-weight: 600;'>{uni.name}</h3>
-                    <p style='margin: 0; font-size: 13px; color: #6B6B6B;'>Official 24/7 AI Admission & Student Helpdesk</p>
-                </div>
+        # ── Specific institution: show header only, NO generic landing text ──
+        lbl = uni.institution_label  # e.g. "School", "University", "Institution"
+        logo_path = uni.logo_url or ""
+        old_globe = any(fragment in logo_path for fragment in (
+            "gstatic.com/faviconV2", "google.com/s2/favicons"
+        ))
+        if logo_path and not old_globe:
+            logo_column, heading_column = st.columns([1, 10], vertical_alignment="center")
+            with logo_column:
+                st.image(logo_path, width=46)
+            with heading_column:
+                st.markdown(f"<h3 style='margin:0;'>{uni.name}</h3>", unsafe_allow_html=True)
+        else:
+            # Text initials placeholder — never a generic globe
+            initials = "".join(w[0].upper() for w in uni.name.split()[:2])
+            logo_html = (
+                f"<div style='width:46px; height:46px; border-radius:8px; background:#EEF2FF; "
+                f"border:1px solid #C7D2FE; display:flex; align-items:center; justify-content:center; "
+                f"margin-right:14px; font-weight:700; font-size:16px; color:#4F46E5; flex-shrink:0;'>"
+                f"{initials}</div>"
+            )
+        if not (logo_path and not old_globe):
+            st.markdown(
+                f"""
+            <div style='display: flex; align-items: center; margin-bottom: 1.25rem;'>
+                {logo_html}
+                <h3 style='margin: 0; font-size: 18px; color: #1A1A1A; font-weight: 600;'>{uni.name}</h3>
             </div>
             """,
+                unsafe_allow_html=True,
+            )
+    else:
+        # Generic landing view: show heading + explore text + dropdown
+        st.markdown("<h2>Ask About an Institution</h2>", unsafe_allow_html=True)
+        st.markdown(
+            "<p style='color:#6B6B6B; font-size:14px; margin-bottom: 1.5rem;'>"
+            "Explore any institution's knowledge base \u2014 no account needed. "
+            "Ask about admissions, fees, courses, deadlines, and more."
+            "</p>",
             unsafe_allow_html=True,
         )
-    else:
-        # Generic Dropdown Selection (Default)
         uni_names = [u.name for u in approved_universities]
+        lbl = "Institution"  # generic label when no specific uni is selected
         selected_name = st.selectbox(
-            "Select a University",
+            "Select an Institution",
             uni_names,
             key="public_inquiry_uni_select",
         )
         uni = next(u for u in approved_universities if u.name == selected_name)
+        lbl = uni.institution_label
         st.markdown(
             f"<div class='uqms-card' style='padding: 12px 16px;'>"
             f"<p style='margin:0; font-size:13px; color:#6B6B6B;'>"
             f"Chatting with <b>{uni.name}</b>'s knowledge base. "
-            f"Answers are generated from the university's uploaded documents.</p>"
+            f"Answers are generated from the {lbl.lower()}'s uploaded documents.</p>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -117,7 +134,7 @@ def render() -> None:
                     The 24/7 AI query service for <b>{uni.name}</b> is temporarily paused pending subscription renewal.
                 </p>
                 <p style='color: #71717A; font-size: 13px; margin: 8px 0 0 0;'>
-                    Please contact the university admissions office directly for assistance.
+                    Please contact the {lbl.lower()} admissions office directly for assistance.
                 </p>
             </div>
             """,
@@ -138,8 +155,9 @@ def render() -> None:
             st.markdown(msg["content"])
 
     # Input box
+    lbl = uni.institution_label
     query = st.chat_input(
-        "Ask a question about this university…",
+        f"Ask a question about this {lbl.lower()}…",
         key=f"public_chat_input_{uni.id}",
     )
 
@@ -204,7 +222,7 @@ def render() -> None:
     with st.expander("Want more info? Talk to admissions", expanded=expanded):
         st.markdown(
             "<p style='color:#6B6B6B; font-size:13px; margin-bottom:12px;'>"
-            "Leave your contact info and we'll connect you with the university's admissions team. "
+            f"Leave your contact info and we'll connect you with the {lbl.lower()}'s admissions team. "
             "Only your email is required."
             "</p>",
             unsafe_allow_html=True,
