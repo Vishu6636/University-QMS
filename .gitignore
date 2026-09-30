@@ -37,3 +37,6 @@ htmlcov/
 
 # Heavy/inactive model weights
 models/intent/distilbert/
+
+# Scratch and internal temporary scripts
+scratch/
