@@ -15,6 +15,26 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/university_qms.db")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Ensure compatible driver if postgresql URL is used
+if DATABASE_URL.startswith("postgresql://"):
+    try:
+        import psycopg  # noqa: F401
+    except ImportError:
+        try:
+            import psycopg2  # noqa: F401
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+        except ImportError:
+            pass
+elif DATABASE_URL.startswith("postgresql+psycopg://"):
+    try:
+        import psycopg  # noqa: F401
+    except ImportError:
+        try:
+            import psycopg2  # noqa: F401
+            DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
+        except ImportError:
+            pass
+
 # SQLite needs check_same_thread=False for Streamlit's multi-thread access.
 # Postgres benefits from pool_pre_ping to handle idle connection drops on free tiers.
 is_sqlite = DATABASE_URL.startswith("sqlite")
